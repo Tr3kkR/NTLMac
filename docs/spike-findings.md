@@ -17,6 +17,19 @@ the unpacked extension and the `ntlmac-nmh` spike host, against the NTLM-only te
 | Stale password | **Exactly 1** failed AUTHENTICATE at the server, host logs `retry_cancelled`, no further attempts |
 | Host not on the allowlist | Browser is challenged, host logs `not_allowlisted`, **no** AUTHENTICATE sent |
 
+`test/e2e/scenarios.test.ts` uses the same harness for the rest of the safety properties.
+Two full runs gave identical results:
+
+| Scenario | Result |
+|---|---|
+| Worker idle termination: 45 s idle, then an NTLM challenge | Worker stopped and woken (2 starts logged), **silent sign-in**, no prompt |
+| Agent unavailable (manifest points at a missing binary) | Browser prompt after **~2.1 s** (budget 3 s, `AGENT_TIMEOUT_MS`), no AUTHENTICATE |
+| Kill switch: `enabled: false`, or a past `killDate` | Host logs `killswitch`, no AUTHENTICATE, browser prompt |
+| Plain HTTP, no exception | Host logs `http_blocked`, no AUTHENTICATE, browser prompt |
+| Plain HTTP with an unexpired `httpExceptions` entry | **Silent sign-in**, no prompt |
+| `WWW-Authenticate: Basic` (server `--basic` mode) | No `Authorization: Basic` ever arrives; host never supplies; browser prompt |
+| First navigation straight after launch | **Prompt**, host never consulted: the startup race, see (a′). Marked `todo` |
+
 Lessons for testing:
 - **Don't test through Playwright/CDP.** Playwright's DevTools `Fetch.authRequired`
   handling answers 401s before extensions see them. Even with no extension, Playwright's
@@ -32,6 +45,14 @@ Lessons for testing:
   unlisted host) can therefore put sign-in dialogs on the desktop of whoever runs the
   suite. Don't type into them. Run the suite on a machine nobody is using, or find a way
   to suppress the prompt before running it unattended.
+  The scenario suite uses this as an oracle: `test/e2e/windows.swift` lists the browser
+  process's windows on every Space. Headless Chrome always owns hidden helper windows
+  (1×1, 396×88, 396×107, 756×556); the sign-in dialog is the only new one, at 320×252
+  (320×272 over plain HTTP). All of them report `onscreen: false`, so a check limited to
+  on-screen windows misses the dialog.
+- The extension logs `NTLMac: service worker started` on every worker start;
+  `--enable-logging=stderr` forwards it, so tests can count idle-termination wakes without
+  attaching DevTools to the worker.
 
 ### Puppeteer can't drive NTLM tests either (2026-10-03)
 
@@ -61,24 +82,32 @@ suite whose no-extension control fails can't tell a correct fallback from a brok
 A useful side effect of Puppeteer: it silently detaches from extension service-worker
 targets unless `worker()` is called, so it wouldn't have kept the worker alive.
 
-The scenarios planned for the Puppeteer suite (worker idle termination, first navigation
-after install, agent unavailable, kill switch, plain HTTP, Basic never answered) still
-need testing. They should be added to the direct-spawn harness instead.
+The scenarios planned for the Puppeteer suite are in the direct-spawn
+`test/e2e/scenarios.test.ts` instead (results under (a)).
 
-## (a′) Startup race for the first navigation: **Open**
+## (a′) Startup race and worker idle termination: idle **Proven locally**, startup **Open**
 
-With `--load-extension` on a fresh profile, a challenge on the browser's very first
-navigation arrives before the service worker has registered its listener. The browser's
-own prompt then appears, and in headless mode it hangs. Production uses policy
-force-install, where Chromium persists MV3 listeners and wakes the worker, so this
-probably doesn't happen there. **To verify on a Jamf test Mac:**
+**Idle termination is not a problem** (`--load-extension`, Chrome for Testing 153). After
+45 s with no events, Chrome had stopped the worker; the next NTLM challenge woke it (a
+second `service worker started` line) and the sign-in was silent. Chromium persists the
+`onAuthRequired` registration and wakes the worker for it, so no keep-alive is needed.
+
+**The startup race is still there with `--load-extension`.** On a fresh profile, a
+challenge on the browser's very first navigation arrives before the service worker has
+registered its listener. The browser's own prompt appears within about 1 s and the host
+is never consulted (scenario "first navigation straight after launch", marked `todo`).
+Puppeteer's CDP install would have avoided `--load-extension`, but CDP breaks NTLM (see
+above), so this can't be tested locally with another install path. Production uses policy
+force-install, where the extension is already installed before the first navigation, so
+the race probably doesn't happen there. **To verify on a Jamf test Mac:**
 1. Quit Edge or Chrome with an NTLM app tab open, relaunch with session restore on, and
    watch for a prompt.
 2. Leave the browser idle for more than 30 s (the worker is terminated), then open an
-   NTLM app.
+   NTLM app. Expected to be fine given the local result above.
 
-If a prompt appears, mitigation: have the extension keep the native port open (an open
-port keeps the worker alive), or add a reload-on-first-wake fallback.
+If a prompt appears on relaunch, mitigation: a reload-on-first-wake fallback (on worker
+start, reload tabs whose last navigation got a 401 from an allowlisted host). Keeping the
+native port open wouldn't help here: the worker isn't running yet when the race happens.
 
 ## (b) `app-sso -i <REALM> -j` field names: **Open**
 Apple's documentation shows the output as a plist/JSON containing the user, password

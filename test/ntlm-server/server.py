@@ -5,8 +5,11 @@ Behaves like an IIS site with only the NTLM provider enabled: it sends
 and optionally enforces channel binding (EPA) like `extendedProtection tokenChecking=Require`.
 
 GET /stats returns per-user success/failure counts (standing in for DC 4625 events when
-testing that NTLMac never causes more than one bad-password attempt) and per-host
-request counts.
+testing that NTLMac never causes more than one bad-password attempt), per-host
+request counts and, in --basic mode, per-host counts of `Authorization: Basic` headers.
+
+--basic turns it into a Basic-only site instead, to prove NTLMac never answers Basic
+(which would hand the password itself to the server). It never accepts Basic credentials.
 
 Users come from an NTLM_USER_FILE (lines of DOMAIN:USER:PASSWORD).
 """
@@ -22,6 +25,7 @@ import ssl
 import threading
 from collections import defaultdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 
 import spnego
 from spnego.channel_bindings import GssChannelBindings
@@ -29,6 +33,7 @@ from spnego.exceptions import NegotiateOptions, SpnegoError
 
 STATS: dict[str, dict[str, int]] = defaultdict(lambda: {"success": 0, "failure": 0})
 REQUESTS: dict[str, int] = defaultdict(int)  # by Host header, proves a browser reached us
+BASIC_ATTEMPTS: dict[str, int] = defaultdict(int)  # by Host header; must stay empty in tests
 STATS_LOCK = threading.Lock()
 
 
@@ -48,6 +53,7 @@ class NTLMHandler(BaseHTTPRequestHandler):
     # HTTP/1.1 keep-alive: NTLM authenticates the connection, not the request.
     protocol_version = "HTTP/1.1"
     channel_bindings: GssChannelBindings | None = None
+    basic_only = False
 
     def setup(self) -> None:
         super().setup()
@@ -73,19 +79,32 @@ class NTLMHandler(BaseHTTPRequestHandler):
         self.send_plain(401, "authentication required", {"WWW-Authenticate": value})
 
     def do_GET(self) -> None:
-        if self.path == "/stats":
+        url = urlsplit(self.path)
+        if url.path == "/stats":
             with STATS_LOCK:
-                self.send_plain(200, json.dumps({"users": STATS, "requests": REQUESTS}))
+                self.send_plain(200, json.dumps({"users": STATS, "requests": REQUESTS, "basic": BASIC_ATTEMPTS}))
             return
 
-        if self.path == "/start":
+        if url.path == "/start":
             # Unauthenticated landing page that moves on to the challenged URL after a
-            # pause, so tests exercise an already-running browser, not extension install.
-            self.send_plain(200, '<html><head><meta http-equiv="refresh" content="2;url=/"></head><body>starting</body></html>', {})
+            # pause (?wait=N seconds, default 2), so tests exercise an already-running
+            # browser, not extension install.
+            wait = parse_qs(url.query).get("wait", ["2"])[0]
+            delay = int(wait) if wait.isdigit() and int(wait) <= 600 else 2
+            self.send_plain(200, f'<html><head><meta http-equiv="refresh" content="{delay};url=/"></head><body>starting</body></html>', {})
             return
 
+        host = (self.headers.get("Host") or "").split(":")[0]
         with STATS_LOCK:
-            REQUESTS[(self.headers.get("Host") or "").split(":")[0]] += 1
+            REQUESTS[host] += 1
+
+        if self.basic_only:
+            if self.headers.get("Authorization", "").lower().startswith("basic"):
+                with STATS_LOCK:
+                    BASIC_ATTEMPTS[host] += 1
+                print(f"[ntlm-server] Basic credentials received for {host} (rejected)", flush=True)
+            self.send_plain(401, "authentication required", {"WWW-Authenticate": 'Basic realm="ntlmac-test"'})
+            return
 
         if self.authenticated_as:
             self.send_plain(200, f"hello {self.authenticated_as}\n")
@@ -143,11 +162,13 @@ def main() -> None:
     parser.add_argument("--users", default="users.txt", help="NTLM_USER_FILE (DOMAIN:USER:PASSWORD)")
     parser.add_argument("--require-cbt", action="store_true", help="enforce channel binding (EPA)")
     parser.add_argument("--plain-http", action="store_true", help="serve without TLS (relay-risk testing)")
+    parser.add_argument("--basic", action="store_true", help="challenge with Basic only, never accept it")
     args = parser.parse_args()
 
     os.environ["NTLM_USER_FILE"] = os.path.abspath(args.users)
     if args.require_cbt:
         NTLMHandler.channel_bindings = tls_server_end_point(args.cert)
+    NTLMHandler.basic_only = args.basic
 
     httpd = ThreadingHTTPServer((args.host, args.port), NTLMHandler)
     if not args.plain_http:
@@ -155,7 +176,8 @@ def main() -> None:
         tls.load_cert_chain(args.cert, args.key)
         httpd.socket = tls.wrap_socket(httpd.socket, server_side=True)
     scheme = "http" if args.plain_http else "https"
-    print(f"[ntlm-server] {scheme}://{args.host}:{args.port} NTLM-only, cbt={'required' if args.require_cbt else 'off'}", flush=True)
+    mode = "Basic-only" if args.basic else "NTLM-only"
+    print(f"[ntlm-server] {scheme}://{args.host}:{args.port} {mode}, cbt={'required' if args.require_cbt else 'off'}", flush=True)
     httpd.serve_forever()
 
 

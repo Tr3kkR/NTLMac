@@ -9,6 +9,9 @@ import {
   toBlockingResponse,
 } from "./logic.ts";
 
+// One line per worker (re)start: lets tests and field logs see MV3 idle termination.
+console.info("NTLMac: service worker started");
+
 let port: chrome.runtime.Port | null = null;
 let nextId = 1;
 const pending = new Map<number, (reply: HostReply | null) => void>();

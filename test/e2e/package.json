@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test spike.test.ts"
+    "test": "npm run test:spike && npm run test:scenarios",
+    "test:spike": "node --test spike.test.ts",
+    "test:scenarios": "node --test --test-concurrency=1 scenarios.test.ts"
   },
   "devDependencies": {
     "playwright": "^1.55.0"

@@ -24,7 +24,7 @@ contains no NTLM implementation.
 | `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`. `ntlmac-nmh` is the native host (spike: in-process broker). |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
-| `test/e2e/` | Browser spike tests: real Chromium, no DevTools, real NTLM handshakes. |
+| `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
 | `packaging/` | Native-messaging manifest and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
@@ -47,8 +47,13 @@ cd test/ntlm-server && python3 -m venv .venv && .venv/bin/pip install pyspnego \
   && printf 'CORP:jbloggs:Passw0rd!\n' > users.txt && ./make-cert.sh \
   && .venv/bin/python -m unittest selftest
 
-# Browser end-to-end (needs the three steps above plus `swift build` in agent/)
+# Browser end-to-end (needs the three steps above plus `swift build` in agent/).
+# `npm test` runs both suites; or `npm run test:spike` / `npm run test:scenarios`.
 cd test/e2e && npm install && npx playwright install chromium && npm test
+
+# The browser suites put Chrome's own sign-in dialog on screen (possibly on another
+# Space) whenever a scenario falls back to it. Don't type into it. Never drive these tests
+# through Playwright/Puppeteer/CDP: a DevTools-controlled page fails NTLM outright.
 
 # Telemetry against a real collector
 docker run --rm -p 4318:4318 \
