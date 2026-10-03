@@ -7,3 +7,7 @@ test/ntlm-server/.venv/
 test/ntlm-server/certs/
 test/ntlm-server/users.txt
 __pycache__/
+
+# Session handoff material (local only)
+HANDOVER.md
+NEXT_AGENT_PROMPT.md
