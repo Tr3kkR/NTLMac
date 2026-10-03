@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "NTLMac",
+  "version": "0.1.0",
+  "description": "Answers NTLM sign-in challenges on allowlisted intranet sites using the credential held by the NTLMac agent.",
+  "minimum_chrome_version": "123",
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "permissions": ["webRequest", "webRequestAuthProvider", "nativeMessaging", "storage"],
+  "host_permissions": ["<all_urls>"]
+}

@@ -1,0 +1,27 @@
+# Local development gateway: plain HTTP, prints every received metric.
+#   docker run --rm -p 4318:4318 -v "$PWD/gateway/otel-collector.local.yaml:/etc/otelcol-contrib/config.yaml" \
+#     otel/opentelemetry-collector-contrib:latest
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  filter/ntlmac_only:
+    error_mode: ignore
+    metrics:
+      metric:
+        - resource.attributes["service.name"] != "ntlmac"
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [filter/ntlmac_only]
+      exporters: [debug]

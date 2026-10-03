@@ -1,0 +1,9 @@
+.DS_Store
+agent/.build/
+agent/.swiftpm/
+node_modules/
+extension/dist/
+test/ntlm-server/.venv/
+test/ntlm-server/certs/
+test/ntlm-server/users.txt
+__pycache__/

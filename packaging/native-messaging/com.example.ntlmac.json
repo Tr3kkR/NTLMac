@@ -1,0 +1,7 @@
+{
+  "name": "com.example.ntlmac",
+  "description": "NTLMac native messaging host",
+  "path": "/Library/Application Support/NTLMac/ntlmac-nmh",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://__EXTENSION_ID__/"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ntlmac-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test spike.test.ts"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

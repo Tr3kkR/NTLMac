@@ -1,0 +1,63 @@
+# NTLMac telemetry gateway (OpenTelemetry Collector, contrib distribution).
+#
+# Macs push OTLP/HTTP metrics here; this is the only component that knows about the SIEM.
+# Moving from Splunk to ClickHouse is a change to `exporters` + the pipeline below, not an
+# NTLMac release. Schema: docs/telemetry-schema.md.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        tls:
+          cert_file: /etc/otelcol/tls/gateway.pem
+          key_file: /etc/otelcol/tls/gateway.key
+          # mTLS: only Macs holding a Jamf-issued (SCEP) device certificate may send.
+          client_ca_file: /etc/otelcol/tls/jamf-device-ca.pem
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  # Drop anything that isn't NTLMac's schema so this endpoint can't become a general sink.
+  filter/ntlmac_only:
+    error_mode: ignore
+    metrics:
+      metric:
+        - resource.attributes["service.name"] != "ntlmac"
+  batch:
+    send_batch_size: 8192
+    timeout: 10s
+  # Any pipeline feeding a Prometheus-style TSDB must strip per-user labels (cardinality,
+  # and per-user data only goes to the DPO-approved SIEM index).
+  attributes/strip_user:
+    actions:
+      - key: enduser.id
+        action: delete
+
+exporters:
+  splunk_hec:
+    token: ${env:SPLUNK_HEC_TOKEN}
+    endpoint: ${env:SPLUNK_HEC_ENDPOINT} # e.g. https://hec.splunk.internal:8088/services/collector
+    index: ntlmac_metrics
+    source: ntlmac
+    sourcetype: "ntlmac:otlp"
+
+  # 2029: ClickHouse replaces Splunk. Uncomment, add to the pipeline, run both in parallel
+  # for a migration window, then remove splunk_hec.
+  # clickhouse:
+  #   endpoint: ${env:CLICKHOUSE_ENDPOINT}
+  #   database: ntlmac
+  #   username: ${env:CLICKHOUSE_USER}
+  #   password: ${env:CLICKHOUSE_PASSWORD}
+  #   metrics_tables:
+  #     sum: { name: "ntlmac_metrics_sum" }
+  #     gauge: { name: "ntlmac_metrics_gauge" }
+
+service:
+  pipelines:
+    metrics/siem:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/ntlmac_only, batch]
+      exporters: [splunk_hec]

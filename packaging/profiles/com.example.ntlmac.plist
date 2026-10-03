@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Managed preferences for the com.example.ntlmac domain. Upload to Jamf Pro as an
+  Application & Custom Settings payload (preference domain: com.example.ntlmac).
+  The allowlist is generated from the CMDB; edit the generator, not this file.
+-->
+<plist version="1.0">
+<dict>
+  <key>enabled</key>
+  <true/>
+  <key>killDate</key>
+  <date>2029-01-01T00:00:00Z</date>
+  <key>realm</key>
+  <string>__AD_REALM__</string>
+  <key>netbiosDomain</key>
+  <string>__NETBIOS_DOMAIN__</string>
+  <key>rules</key>
+  <array>
+    <dict>
+      <key>id</key>
+      <string>__CMDB_SERVICE_ID__</string>
+      <key>pattern</key>
+      <string>*.__INTERNAL_DNS_SUFFIX__</string>
+    </dict>
+  </array>
+  <key>deny</key>
+  <array>
+    <string>__ADFS_OR_OTHER_SENSITIVE_HOST__</string>
+  </array>
+  <key>httpExceptions</key>
+  <array/>
+  <key>otlpEndpoint</key>
+  <string>https://__GATEWAY_HOST__:4318/v1/metrics</string>
+</dict>
+</plist>

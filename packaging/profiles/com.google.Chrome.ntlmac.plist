@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Browser policy for com.google.Chrome: force-install the self-hosted NTLMac extension and only
+  allow system-level native messaging hosts. Merge into the existing com.google.Chrome policy payload.
+-->
+<plist version="1.0">
+<dict>
+  <key>ExtensionSettings</key>
+  <dict>
+    <key>__EXTENSION_ID__</key>
+    <dict>
+      <key>installation_mode</key>
+      <string>force_installed</string>
+      <key>update_url</key>
+      <string>https://__EXTENSION_HOST__/ntlmac/updates.xml</string>
+      <key>toolbar_pin</key>
+      <string>default_unpinned</string>
+    </dict>
+  </dict>
+  <key>NativeMessagingUserLevelHosts</key>
+  <false/>
+</dict>
+</plist>
