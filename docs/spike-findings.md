@@ -26,6 +26,44 @@ Lessons for testing:
   "Chrome Safe Storage" Keychain prompt.
 - `--dump-dom` never returns once the extension holds a native-messaging port open, so
   don't rely on it.
+- **Headless Chrome on macOS shows its HTTP auth prompt as a real window.** It appears on
+  the user's screen (seen on another Space), not inside the headless session. Scenarios
+  where the extension declines and Chrome falls back to its own prompt (stale password,
+  unlisted host) can therefore put sign-in dialogs on the desktop of whoever runs the
+  suite. Don't type into them. Run the suite on a machine nobody is using, or find a way
+  to suppress the prompt before running it unattended.
+
+### Puppeteer can't drive NTLM tests either (2026-10-03)
+
+The Step 0 control for a Puppeteer suite **failed**. Puppeteer 25.12 launched Chrome for
+Testing 154.0.8037.57 headless over `pipe: true`, with **no extension**, and navigated to
+the NTLM-only server:
+- `page.goto` rejected with `net::ERR_INVALID_AUTH_CREDENTIALS` within about 3 s, instead
+  of resolving with a 401.
+- The server saw exactly one `GET /` (the 401 challenge), then no NTLM NEGOTIATE and no
+  AUTHENTICATE. Chrome gave up on its own without prompting.
+- No `Fetch.enable` was sent. Every CDP method was logged; the page-level ones were
+  `Network.enable`, `Page.enable`, `Runtime.enable`, `Log.enable`, `Audits.enable`,
+  `Performance.enable`, `Emulation.*` and `Page.navigate`. So this is **not** the
+  `Fetch.authRequired` interception that broke Playwright: avoiding `page.authenticate()`
+  and `setRequestInterception()` isn't enough.
+- It also fails with `ignoreDefaultArgs: true` and only `--headless --remote-debugging-pipe`
+  plus the test flags, so no Puppeteer default flag causes it.
+
+Direct-spawn Chrome with no DevTools connection doesn't error: it waits on the auth prompt.
+So a DevTools-controlled page cancels HTTP auth that has no handler with
+`ERR_INVALID_AUTH_CREDENTIALS`, and any CDP-driven harness hides the behaviour under test
+(whether the extension, or the browser's fallback prompt, answers the challenge).
+**Decision:** keep the direct-spawn harness (`test/e2e/spike.test.ts`) and assert on the
+server's `/stats` and the host's stderr decision lines. Not yet tested: whether
+`onAuthRequired` still fires in an extension under a CDP-controlled page. It might, but a
+suite whose no-extension control fails can't tell a correct fallback from a broken one.
+A useful side effect of Puppeteer: it silently detaches from extension service-worker
+targets unless `worker()` is called, so it wouldn't have kept the worker alive.
+
+The scenarios planned for the Puppeteer suite (worker idle termination, first navigation
+after install, agent unavailable, kill switch, plain HTTP, Basic never answered) still
+need testing. They should be added to the direct-spawn harness instead.
 
 ## (a′) Startup race for the first navigation: **Open**
 
