@@ -20,6 +20,7 @@ import Testing
         prefs["deny"] = ["adfs.corp.example"]
         prefs["httpExceptions"] = [["host": "old.corp.example", "expires": killDate]]
         prefs["otlpEndpoint"] = "https://otel.corp.example:4318"
+        prefs["hostIDSalt"] = "per-fleet-salt"
         prefs["PayloadUUID"] = "ignored-extra-key"
 
         let config = try ConfigLoader.decode(preferences: prefs)
@@ -30,6 +31,7 @@ import Testing
         #expect(config.deny == ["adfs.corp.example"])
         #expect(config.httpExceptions == [HTTPException(host: "old.corp.example", expires: killDate)])
         #expect(config.otlpEndpoint == "https://otel.corp.example:4318")
+        #expect(config.hostIDSalt == "per-fleet-salt")
     }
 
     @Test func optionalListsDefaultToEmpty() throws {
@@ -37,6 +39,7 @@ import Testing
         #expect(config.deny.isEmpty)
         #expect(config.httpExceptions.isEmpty)
         #expect(config.otlpEndpoint == nil)
+        #expect(config.hostIDSalt == nil)
     }
 
     @Test(arguments: ["enabled", "killDate", "realm", "netbiosDomain", "rules"])
@@ -54,6 +57,7 @@ import Testing
         let config = try ConfigLoader.decode(preferences: try #require(plist as? [String: Any]))
         #expect(config.enabled)
         #expect(!config.rules.isEmpty)
+        #expect(config.hostIDSalt != nil, "the template documents the telemetry salt")
     }
 
     @Test func decodesSpikeJSONFile() throws {

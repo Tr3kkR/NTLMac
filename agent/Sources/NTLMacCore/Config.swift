@@ -15,6 +15,8 @@ public struct NTLMacConfig: Codable, Sendable, Equatable {
     public var deny: [String]
     public var httpExceptions: [HTTPException]
     public var otlpEndpoint: String?
+    /// Salt for the pseudonymous `host.id` telemetry attribute (SHA-256 of salt:serial).
+    public var hostIDSalt: String?
 
     public init(
         enabled: Bool,
@@ -24,7 +26,8 @@ public struct NTLMacConfig: Codable, Sendable, Equatable {
         rules: [AllowlistRule],
         deny: [String] = [],
         httpExceptions: [HTTPException] = [],
-        otlpEndpoint: String? = nil
+        otlpEndpoint: String? = nil,
+        hostIDSalt: String? = nil
     ) {
         self.enabled = enabled
         self.killDate = killDate
@@ -34,6 +37,7 @@ public struct NTLMacConfig: Codable, Sendable, Equatable {
         self.deny = deny
         self.httpExceptions = httpExceptions
         self.otlpEndpoint = otlpEndpoint
+        self.hostIDSalt = hostIDSalt
     }
 
     // Optional lists may be omitted from the Jamf profile; everything else is required so
@@ -48,6 +52,7 @@ public struct NTLMacConfig: Codable, Sendable, Equatable {
         deny = try c.decodeIfPresent([String].self, forKey: .deny) ?? []
         httpExceptions = try c.decodeIfPresent([HTTPException].self, forKey: .httpExceptions) ?? []
         otlpEndpoint = try c.decodeIfPresent(String.self, forKey: .otlpEndpoint)
+        hostIDSalt = try c.decodeIfPresent(String.self, forKey: .hostIDSalt)
     }
 }
 

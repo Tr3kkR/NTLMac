@@ -16,6 +16,11 @@ public struct TelemetryQueue: Sendable {
     public static let defaultMaxAge: TimeInterval = 7 * 86_400
     public static let defaultMaxBytes = 5 * 1024 * 1024
 
+    /// `~/Library/Application Support/com.example.ntlmac/telemetry`
+    public static func defaultDirectory(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
+        home.appendingPathComponent("Library/Application Support/com.example.ntlmac/telemetry", isDirectory: true)
+    }
+
     public let directory: URL
     public let maxAge: TimeInterval
     public let maxBytes: Int
@@ -152,6 +157,27 @@ public struct OTLPHTTPTransport: TelemetryTransport {
         case 400 ..< 500: return .rejected(status: status)
         default: throw RetryableStatus(status: status)
         }
+    }
+}
+
+/// The gateway endpoint comes from the managed profile, which can change while the agent
+/// runs. With no endpoint, sends fail as retryable, so payloads wait in the queue.
+public actor SwitchableTransport: TelemetryTransport {
+    public struct NotConfigured: Error {}
+
+    private var current: TelemetryTransport?
+
+    public init(_ transport: TelemetryTransport? = nil) {
+        current = transport
+    }
+
+    public func use(_ transport: TelemetryTransport?) {
+        current = transport
+    }
+
+    public func send(_ payload: Data) async throws -> DeliveryResult {
+        guard let current else { throw NotConfigured() }
+        return try await current.send(payload)
     }
 }
 

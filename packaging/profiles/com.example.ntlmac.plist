@@ -32,5 +32,7 @@
   <array/>
   <key>otlpEndpoint</key>
   <string>https://__GATEWAY_HOST__:4318/v1/metrics</string>
+  <key>hostIDSalt</key>
+  <string>__TELEMETRY_HOST_ID_SALT__</string>
 </dict>
 </plist>

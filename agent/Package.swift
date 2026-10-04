@@ -7,10 +7,12 @@ let package = Package(
     products: [
         .library(name: "NTLMacCore", targets: ["NTLMacCore"]),
         .executable(name: "ntlmac-nmh", targets: ["ntlmac-nmh"]),
+        .executable(name: "NTLMacAgent", targets: ["NTLMacAgent"]),
     ],
     targets: [
         .target(name: "NTLMacCore"),
         .executableTarget(name: "ntlmac-nmh", dependencies: ["NTLMacCore"]),
+        .executableTarget(name: "NTLMacAgent", dependencies: ["NTLMacCore"]),
         .testTarget(name: "NTLMacCoreTests", dependencies: ["NTLMacCore"]),
     ]
 )

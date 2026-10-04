@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Per-user LaunchAgent for the NTLMac agent. The pkg installs it in /Library/LaunchAgents
+  (root-owned, 644) so it loads for every GUI login; the postinstall script bootstraps it
+  into gui/<uid> for a user who is already logged in.
+
+  MachServices registers com.example.ntlmac.agent (AgentXPC.machServiceName), which the
+  native host connects to. RunAtLoad + KeepAlive keep the agent running so it hears AD
+  password-change notifications and flushes telemetry even when no browser asks it
+  anything. It refuses to start unless it is signed with a team ID, so an unsigned copy
+  exits with EX_CONFIG (78) and launchd retries it at the ThrottleInterval.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.ntlmac.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Library/Application Support/NTLMac/NTLMacAgent</string>
+  </array>
+  <key>MachServices</key>
+  <dict>
+    <key>com.example.ntlmac.agent</key>
+    <true/>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+  <!-- GUI sessions only: the agent will show the enrolment / re-prompt dialog. -->
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+  <key>ProcessType</key>
+  <string>Adaptive</string>
+  <!-- Shows the agent under the signed app's name in System Settings > Login Items. -->
+  <key>AssociatedBundleIdentifiers</key>
+  <string>com.example.ntlmac.agent</string>
+</dict>
+</plist>

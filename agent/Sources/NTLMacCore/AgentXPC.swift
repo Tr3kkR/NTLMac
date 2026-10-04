@@ -1,6 +1,11 @@
 import Foundation
 import Security
 
+public enum AgentXPC {
+    /// The agent's launchd Mach service (`MachServices` in the LaunchAgent plist).
+    public static let machServiceName = "com.example.ntlmac.agent"
+}
+
 // MARK: Code-signing policy
 
 public enum CodeSigningError: Error, Equatable {
@@ -41,6 +46,12 @@ public struct CodeSigningPolicy: Sendable, Equatable {
         self.shimIdentifier = shimIdentifier
     }
 
+    /// Both binaries ship in one signed package, so each requires its peer to carry its
+    /// own team ID. Nil when this process isn't signed with a team ID (ad-hoc, unsigned).
+    public static func forCurrentProcess() throws -> CodeSigningPolicy? {
+        try CodeSigning.currentTeamID().map { try CodeSigningPolicy(teamID: $0) }
+    }
+
     /// What the shim requires of the agent.
     public var agentRequirement: String { requirement(identifier: agentIdentifier) }
     /// What the agent requires of the shim.
@@ -63,6 +74,20 @@ public enum CodeSigning {
         let status = SecCodeCopySelf([], &code)
         guard status == errSecSuccess, let code else { throw CodeSigningError.cannotInspectSelf(status) }
         return SecCodeCheckValidity(code, [], req) == errSecSuccess
+    }
+
+    /// The team ID this process is signed with, or nil if it has none.
+    public static func currentTeamID() throws -> String? {
+        var code: SecCode?
+        var staticCode: SecStaticCode?
+        var info: CFDictionary?
+        var status = SecCodeCopySelf([], &code)
+        guard status == errSecSuccess, let code else { throw CodeSigningError.cannotInspectSelf(status) }
+        status = SecCodeCopyStaticCode(code, [], &staticCode)
+        guard status == errSecSuccess, let staticCode else { throw CodeSigningError.cannotInspectSelf(status) }
+        status = SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &info)
+        guard status == errSecSuccess, let info = info as? [String: Any] else { throw CodeSigningError.cannotInspectSelf(status) }
+        return info[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
     private static func compile(_ requirement: String) throws -> SecRequirement {
