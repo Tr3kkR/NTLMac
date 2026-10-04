@@ -105,6 +105,12 @@ public struct AuthBroker: Sendable {
         return .supply(ruleId: rule.id)
     }
 
+    /// The allow rule `host` falls under, if any. Telemetry reports declines on listed hosts
+    /// (HTTP blocked, suspect) against their rule.
+    public func matchingRule(host: String) -> AllowlistRule? {
+        allowlist.match(host: host)
+    }
+
     /// Call after a new password has been validated (Kerberos AS-REQ) and stored.
     public mutating func credentialReplaced() {
         credentialState = .ok

@@ -189,4 +189,11 @@ private func request(
         }
         #expect(breaker.trackedRequestCount <= CircuitBreaker.maxTrackedRequests)
     }
+
+    @Test func reportsTheRuleAHostMatchesForTelemetry() {
+        let broker = AuthBroker(config: config(), credentialState: .ok)
+        #expect(broker.matchingRule(host: "APP.corp.example")?.id == "corp-wide")
+        #expect(broker.matchingRule(host: "x.lab.corp.example") == nil, "deny wins")
+        #expect(broker.matchingRule(host: "evil.example") == nil)
+    }
 }
