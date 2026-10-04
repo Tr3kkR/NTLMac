@@ -33,7 +33,7 @@ const promptShown = (s: Session) =>
 
 /** Browses `path`, waits for `done` (or `ms`), then watches 3 s more for stray retries. */
 async function browse(server: Server, path: string, launchOpts: Omit<Parameters<typeof launch>[0], "url">, done: (s: Session) => Promise<boolean>, ms = 20_000) {
-  const session = launch({ url: server.url(path), ...launchOpts });
+  const session = await launch({ url: server.url(path), ...launchOpts });
   try {
     // Window lists early and late, so promptShown can be recalibrated from the output if
     // Chrome's dialog or helper windows change size. /start pages haven't been challenged yet.
@@ -60,6 +60,7 @@ test("worker idle termination: silent sign-in after Chrome has stopped the idle 
   assert.equal(count(obs.stats, "success"), 1);
   assert.equal(count(obs.stats, "failure"), 0);
   assert.deepEqual(obs.session.decisions(), ["supplied"]);
+  assert.match(obs.session.agentLog(), /-> supplied/, "the agent made the decision");
   assert.equal(obs.prompt, false, "no sign-in prompt on the happy path");
 });
 
@@ -74,9 +75,12 @@ test(
   },
 );
 
-test("agent unavailable: missing host binary falls back to the prompt within AGENT_TIMEOUT_MS, no credential sent", async () => {
-  const server = await startServer(18463);
-  const session = launch({ url: server.url("/start"), hostPath: "/nonexistent/ntlmac-nmh" });
+/**
+ * Navigates to a challenged page with no usable agent and checks the extension falls back
+ * to the browser's own prompt within AGENT_TIMEOUT_MS of the challenge, sending nothing.
+ */
+async function expectPromptWithinBudget(server: Server, launchOpts: Omit<Parameters<typeof launch>[0], "url">) {
+  const session = await launch({ url: server.url("/start"), ...launchOpts });
   try {
     assert.ok(await waitFor(async () => reached(await server.stats()) > 0, 15_000), "browser must be challenged");
     const challenged = Date.now();
@@ -88,12 +92,24 @@ test("agent unavailable: missing host binary falls back to the prompt within AGE
     assert.ok(prompted, "the browser's own prompt must appear");
     assert.ok(fallbackMs <= AGENT_TIMEOUT_MS + 1_000, `fell back after ${fallbackMs} ms`);
     assert.deepEqual(stats.users, {}, "no NTLM AUTHENTICATE may reach the server");
-    assert.deepEqual(session.decisions(), [], "no host ran");
-    assert.ok(session.logged(/NTLMac agent (disconnected|unavailable)/), "extension logs the missing agent");
+    return session;
   } finally {
     await session.close();
     server.stop();
   }
+}
+
+test("native host missing: falls back to the prompt within AGENT_TIMEOUT_MS, no credential sent", async () => {
+  const session = await expectPromptWithinBudget(await startServer(18463), { hostPath: "/nonexistent/ntlmac-nmh", agent: false });
+  assert.deepEqual(session.decisions(), [], "no host ran");
+  assert.ok(session.logged(/NTLMac agent (disconnected|unavailable)/), "extension logs the missing host");
+});
+
+test("agent not running: the shim declines agent_unavailable and the browser prompts within AGENT_TIMEOUT_MS", async () => {
+  const session = await expectPromptWithinBudget(await startServer(18469), { agent: false });
+  const decisions = session.decisions();
+  assert.ok(decisions.length > 0, "the shim must have answered");
+  assert.deepEqual([...new Set(decisions)], ["agent_unavailable"]);
 });
 
 for (const [name, config] of [

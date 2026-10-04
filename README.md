@@ -21,12 +21,12 @@ contains no NTLM implementation.
 
 | Path | What |
 |---|---|
-| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the MVP agent's building blocks: `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue) and the `SignedInUserProvider` boundary. `ntlmac-nmh` is the native host (spike: in-process broker). |
+| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the agent's parts: `AgentService` (composes them), `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue) and the `SignedInUserProvider` boundary. `NTLMacAgent` is the per-user LaunchAgent; `ntlmac-nmh` is the native host, a thin shim that forwards to the agent over XPC. |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
-| `packaging/` | Native-messaging manifest and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
+| `packaging/` | Native-messaging manifest, LaunchAgent plist and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
 
 Identifiers (native host name, preference domain, Keychain service) use the placeholder
@@ -36,8 +36,11 @@ packaging.
 ## Running the tests
 
 ```sh
-# Swift core (96 tests)
+# Swift core (140 tests)
 cd agent && swift test
+
+# Release binaries contain none of the DEBUG-only test overrides
+agent/scripts/check-release-overrides.sh
 
 # Extension (build + 5 unit tests)
 cd extension && npm install && npm run build && npm test
@@ -51,6 +54,11 @@ cd test/ntlm-server && python3 -m venv .venv && .venv/bin/pip install pyspnego \
 # `npm test` runs both suites; or `npm run test:spike` / `npm run test:scenarios`.
 cd test/e2e && npm install && npx playwright install chromium && npm test
 
+# Each browser session runs the debug NTLMacAgent as a throwaway LaunchAgent in your GUI
+# session (`launchctl bootstrap gui/$UID`, plist in a temp dir) and boots it out
+# afterwards. Debug builds are ad-hoc signed, so DEBUG-only overrides pin each side to the
+# other's cdhash and give the agent a JSON config and a credential file.
+#
 # The browser suites put Chrome's own sign-in dialog on screen (possibly on another
 # Space) whenever a scenario falls back to it. Don't type into it. Never drive these tests
 # through Playwright/Puppeteer/CDP: a DevTools-controlled page fails NTLM outright.
@@ -71,6 +79,10 @@ docker run --rm -p 4318:4318 \
 - **Lockout guard.** At most one credential per browser request. A second challenge for
   the same request latches the credential as `suspect` everywhere until a new password is
   validated. Rate-limited per host.
+- **Signed peers only.** The agent and the shim each require the other to be signed with
+  their own team ID (read from their own signature) and the expected identifier. The
+  shim sends nothing until the agent has passed that check. Unsigned builds refuse to
+  start (agent) or decline everything (shim).
 - **Kill switch.** `enabled=false` or a passed `killDate` stops all supply. A missing or
   malformed profile fails closed.
 - Passwords never appear in logs, telemetry or response descriptions. Only the URL

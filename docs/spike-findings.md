@@ -7,7 +7,9 @@ Items are labelled **Proven** (tested in this repo), **Confirmed** (vendor docs 
 ## (a) Chromium answers server NTLM challenges via the extension: **Proven**
 
 `test/e2e/spike.test.ts` runs Chrome for Testing 153 headless with no DevTools attached,
-the unpacked extension and the `ntlmac-nmh` spike host, against the NTLM-only test server:
+the unpacked extension and the `ntlmac-nmh` host, against the NTLM-only test server. Since
+2026-10-04 the host is the thin shim and the decision comes from a debug `NTLMacAgent`
+running as a throwaway LaunchAgent; results are unchanged:
 
 | Scenario | Result |
 |---|---|
@@ -23,7 +25,8 @@ Two full runs gave identical results:
 | Scenario | Result |
 |---|---|
 | Worker idle termination: 45 s idle, then an NTLM challenge | Worker stopped and woken (2 starts logged), **silent sign-in**, no prompt |
-| Agent unavailable (manifest points at a missing binary) | Browser prompt after **~2.1 s** (budget 3 s, `AGENT_TIMEOUT_MS`), no AUTHENTICATE |
+| Native host missing (manifest points at a missing binary) | Browser prompt after **~2.1 s** (budget 3 s, `AGENT_TIMEOUT_MS`), no AUTHENTICATE |
+| Agent not running (shim finds nothing on its Mach service) | Shim declines `agent_unavailable`; browser prompt after **~2.1 s**, no AUTHENTICATE |
 | Kill switch: `enabled: false`, or a past `killDate` | Host logs `killswitch`, no AUTHENTICATE, browser prompt |
 | Plain HTTP, no exception | Host logs `http_blocked`, no AUTHENTICATE, browser prompt |
 | Plain HTTP with an unexpired `httpExceptions` entry | **Silent sign-in**, no prompt |
@@ -127,9 +130,20 @@ The guide has no `AuthenticationSuccess` or `AuthenticationFailure` notification
 don't depend on one. Verify delivery with `notifyutil -w <name>` during a real password
 change.
 
-## (d) Native host → XPC → agent with Keychain ACL: building blocks **Proven locally**, signed end to end **Open**
-The building blocks are in `NTLMacCore` and tested; the agent executable and the shim
-rewrite aren't built yet (`ntlmac-nmh` still runs the broker in-process).
+## (d) Native host → XPC → agent with Keychain ACL: **Proven locally** (ad-hoc builds), signed end to end **Open**
+`NTLMacAgent` runs `AgentService` on a launchd Mach service; `ntlmac-nmh` forwards to
+it. Both browser suites pass through a real `launchctl bootstrap gui/$UID` agent, with
+each side pinned to the other's cdhash by DEBUG-only overrides (absent from release
+binaries: `agent/scripts/check-release-overrides.sh`). Without a Mach service, or
+against an agent that fails its requirement, the shim declines `agent_unavailable` in
+under 0.3 s.
+- **Team ID comes from each binary's own signature**, not from the profile or a build
+  setting. The shim reads no config, and a build constant could drift from the actual
+  signature. Each side requires the other to carry the same team ID; with none, the agent
+  refuses to start and the shim declines everything.
+- **A malformed requirement string crashes the process.** `NSXPCConnection` raises an
+  Objective-C exception instead of failing, so both binaries compile the requirement
+  first (`CodeSigning.validate`).
 - **XPC code-signing checks, both ways** (`AgentXPC.swift`): tested with a real
   anonymous `NSXPCListener`. Matching requirements round-trip; a team-ID requirement on
   either side rejects the test process, and the agent's handler never runs.
