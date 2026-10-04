@@ -21,7 +21,7 @@ contains no NTLM implementation.
 
 | Path | What |
 |---|---|
-| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`. `ntlmac-nmh` is the native host (spike: in-process broker). |
+| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the MVP agent's building blocks: `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue) and the `SignedInUserProvider` boundary. `ntlmac-nmh` is the native host (spike: in-process broker). |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
@@ -36,7 +36,7 @@ packaging.
 ## Running the tests
 
 ```sh
-# Swift core (54 tests)
+# Swift core (96 tests)
 cd agent && swift test
 
 # Extension (build + 5 unit tests)

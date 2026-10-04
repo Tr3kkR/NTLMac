@@ -127,10 +127,23 @@ The guide has no `AuthenticationSuccess` or `AuthenticationFailure` notification
 don't depend on one. Verify delivery with `notifyutil -w <name>` during a real password
 change.
 
-## (d) Native host → XPC → agent with Keychain ACL: **Open**
-Not built yet. The spike host runs the broker in-process. Release builds read the
-credential from a plain Keychain item. `#if DEBUG` builds also accept a credential file
-for automated tests.
+## (d) Native host → XPC → agent with Keychain ACL: building blocks **Proven locally**, signed end to end **Open**
+The building blocks are in `NTLMacCore` and tested; the agent executable and the shim
+rewrite aren't built yet (`ntlmac-nmh` still runs the broker in-process).
+- **XPC code-signing checks, both ways** (`AgentXPC.swift`): tested with a real
+  anonymous `NSXPCListener`. Matching requirements round-trip; a team-ID requirement on
+  either side rejects the test process, and the agent's handler never runs.
+- **A client-side requirement only guards messages *from* the peer.** Without a
+  handshake, an impostor agent received the shim's first request (host names, no
+  secrets) before the reply was rejected. The shim now sends a data-free `hello` first
+  and sends nothing else until that reply passes the check.
+- **Keychain** (`CredentialStore.swift`): the item lives in the data-protection Keychain
+  (`WhenUnlockedThisDeviceOnly`, not synchronisable, optional access group). An ad-hoc
+  signed process with no `keychain-access-groups` entitlement gets
+  `errSecMissingEntitlement` (-34018) when writing. So the agent **must** ship
+  Developer-ID signed with that entitlement; check during packaging whether that needs a
+  provisioning profile. Still to show on a signed build: that an unentitled process
+  can't read the agent's existing item.
 
 ## (e) OTLP into the SIEM: **Partly proven**
 - The NTLMac OTLP/JSON payload is accepted by otelcol-contrib 0.161.0:
