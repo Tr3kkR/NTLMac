@@ -95,8 +95,10 @@ The binaries need no rebuild: each reads the prefix back from its own signing id
 (`<prefix>.agent`, `<prefix>.nmh`), as it does the team ID. An unsigned or bare build gets
 the placeholder.
 
-The build doesn't cover two things that must match:
-- the extension's `NATIVE_HOST` (`extension/src/logic.ts`): the native host name, i.e.
-  the prefix;
-- the Jamf preference profile's domain (`packaging/profiles/com.example.ntlmac.plist`):
-  the prefix.
+Two other things must match the prefix:
+- the extension's native host name: build it with the same variable,
+  `NTLMAC_PREFIX=<prefix> npm run build` in `extension/`. A post-build step replaces the
+  placeholder in `dist/logic.js`, and fails unless it finds it exactly once;
+- the Jamf preference profile's domain: `make-pkg.sh` writes
+  `agent/.build/pkg/profiles/<prefix>.plist` next to the package. Upload it under preference
+  domain `<prefix>`, after filling in its `__…__` placeholders.

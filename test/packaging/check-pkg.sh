@@ -95,6 +95,11 @@ assert m['name'] == '$PREFIX'" "$P/Library/$dir/NativeMessagingHosts/$PREFIX.jso
   check "scripts only act on the boot volume" sh -c "grep -q '\"\$3\" = \"/\"' '$COMPONENT/Scripts/preinstall' && grep -q '\"\$3\" = \"/\"' '$COMPONENT/Scripts/postinstall'"
   check "uninstaller removes user data through the agent" grep -q -- '--remove-user-data' "$P/$SUPPORT/uninstall.sh"
   check "uninstaller refuses to run unprivileged" sh -c "! '$P/$SUPPORT/uninstall.sh'"
+
+  # Next to the package (not in it): the Jamf preference profile, named for its domain.
+  PROFILE="$(dirname "$PKG")/profiles/$PREFIX.plist"
+  check "Jamf prefs profile $PREFIX.plist beside the package" plutil -lint -s "$PROFILE"
+  check "profile comment names the $PREFIX domain" grep -q "preference domain: $PREFIX)" "$PROFILE"
 }
 
 check_package com.example.ntlmac

@@ -13,6 +13,8 @@
 #   NTLMAC_PREFIX=<reverse DNS>                 replaces com.example.ntlmac in every identifier,
 #                                               file name and script (see make-app.sh)
 #   agent/scripts/make-pkg.sh   -> agent/.build/pkg/NTLMac-<version>.pkg
+#                                  agent/.build/pkg/profiles/<prefix>.plist (Jamf prefs, upload
+#                                  under preference domain <prefix>; fill in its placeholders)
 #
 # Builds only; never installs. Check the result with test/packaging/check-pkg.sh.
 set -eu
@@ -47,7 +49,8 @@ stage ../packaging/launchd/com.example.ntlmac.agent.plist "$root/Library/LaunchA
 for browser in Google/Chrome Microsoft/Edge; do
   stage ../packaging/native-messaging/com.example.ntlmac.json "$root/Library/$browser/NativeMessagingHosts/$prefix.json" 644
 done
-mkdir "$out/scripts"
+mkdir "$out/scripts" "$out/profiles"
+stage ../packaging/profiles/com.example.ntlmac.plist "$out/profiles/$prefix.plist" 644
 for script in preinstall postinstall; do
   stage "../packaging/pkg/scripts/$script" "$out/scripts/$script" 755
 done
