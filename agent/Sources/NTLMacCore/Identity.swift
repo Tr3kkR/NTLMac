@@ -5,12 +5,12 @@ import Foundation
 /// signing identifier (`<prefix>.nmh`), the Keychain service and access group, the managed
 /// preference domain and the per-user data folder.
 ///
-/// The repository uses the placeholder `com.example.ntlmac`. `make-app.sh` signs with
-/// `NTLMAC_PREFIX`, and each binary reads its prefix back from its own signing identifier,
-/// as it does its team ID, so no build constant can disagree with the signature. Unsigned
-/// or bare builds (tests, the browser suites) get the placeholder.
+/// The default is `com.devnull.ntlmac`. `make-app.sh` signs with `NTLMAC_PREFIX` (default
+/// the same), and each binary reads its prefix back from its own signing identifier, as it
+/// does its team ID, so no build constant can disagree with the signature. Unsigned or bare
+/// builds (tests, the browser suites) get the default.
 public struct NTLMacIdentity: Sendable, Equatable {
-    public static let placeholder = NTLMacIdentity(prefix: "com.example.ntlmac")!
+    public static let standard = NTLMacIdentity(prefix: "com.devnull.ntlmac")!
 
     /// This process's identity, from its signing identifier.
     public static let current = NTLMacIdentity(signingIdentifier: try? CodeSigning.currentIdentifier())
@@ -28,7 +28,7 @@ public struct NTLMacIdentity: Sendable, Equatable {
         self.prefix = prefix
     }
 
-    /// From `<prefix>.agent` or `<prefix>.nmh`; anything else means the placeholder.
+    /// From `<prefix>.agent` or `<prefix>.nmh`; anything else means the default.
     public init(signingIdentifier: String?) {
         for suffix in [".agent", ".nmh"] {
             if let id = signingIdentifier, id.hasSuffix(suffix), let identity = NTLMacIdentity(prefix: String(id.dropLast(suffix.count))) {
@@ -36,7 +36,7 @@ public struct NTLMacIdentity: Sendable, Equatable {
                 return
             }
         }
-        self = .placeholder
+        self = .standard
     }
 
     public var agent: String { "\(prefix).agent" }

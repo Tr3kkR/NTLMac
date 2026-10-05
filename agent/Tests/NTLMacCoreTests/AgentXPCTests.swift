@@ -37,8 +37,8 @@ private func server(requiringClient requirement: String, seen: Seen = Seen()) ->
 
 @Suite struct CodeSigningPolicyTests {
     @Test func requirementsPinTeamAndIdentifier() {
-        #expect(policy.agentRequirement == #"anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345" and identifier "com.example.ntlmac.agent""#)
-        #expect(policy.shimRequirement == #"anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345" and identifier "com.example.ntlmac.nmh""#)
+        #expect(policy.agentRequirement == #"anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345" and identifier "com.devnull.ntlmac.agent""#)
+        #expect(policy.shimRequirement == #"anchor apple generic and certificate leaf[subject.OU] = "ABCDE12345" and identifier "com.devnull.ntlmac.nmh""#)
     }
 
     @Test func requirementsCompile() throws {

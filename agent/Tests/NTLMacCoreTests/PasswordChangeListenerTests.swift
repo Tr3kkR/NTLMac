@@ -84,7 +84,7 @@ private final class Received: @unchecked Sendable {
 @Suite struct SystemDarwinNotificationCenterTests {
     @Test func deliversPostedNotificationsUntilCancelled() async throws {
         let center = SystemDarwinNotificationCenter()
-        let name = "com.example.ntlmac.test.\(UUID().uuidString)"
+        let name = "com.devnull.ntlmac.test.\(UUID().uuidString)"
         let received = Received()
         let token = try center.observe(name, queue: .global()) { received.append(name) }
         notify_post(name)

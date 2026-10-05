@@ -10,7 +10,7 @@
 #   SIGN_IDENTITY="Developer ID Application: …" signs the app (see make-app.sh); ad hoc if unset
 #   INSTALLER_IDENTITY="Developer ID Installer: …" signs the package
 #   NOTARY_PROFILE=<notarytool keychain profile>  notarises and staples (needs both identities)
-#   NTLMAC_PREFIX=<reverse DNS>                 replaces com.example.ntlmac in every identifier,
+#   NTLMAC_PREFIX=<reverse DNS>                 replaces com.devnull.ntlmac in every identifier,
 #                                               file name and script (see make-app.sh)
 #   agent/scripts/make-pkg.sh   -> agent/.build/pkg/NTLMac-<version>.pkg
 #                                  agent/.build/pkg/profiles/<prefix>.plist (Jamf prefs, upload
@@ -26,7 +26,7 @@ printf '%s' "$ext" | grep -Eqx '[a-p]{32}' \
 if [ -n "${NOTARY_PROFILE:-}" ] && { [ -z "${INSTALLER_IDENTITY:-}" ] || [ -z "${SIGN_IDENTITY:-}" ]; }; then
   echo "NOTARY_PROFILE needs SIGN_IDENTITY and INSTALLER_IDENTITY (Developer ID)" >&2; exit 64
 fi
-prefix="${NTLMAC_PREFIX:-com.example.ntlmac}"
+prefix="${NTLMAC_PREFIX:-com.devnull.ntlmac}"
 version=$(sed -n 's/^let version = "\(.*\)"$/\1/p' Sources/NTLMacAgent/main.swift)
 
 scripts/make-app.sh release >/dev/null # also validates NTLMAC_PREFIX
@@ -34,9 +34,9 @@ app=.build/release/NTLMac.app
 out=.build/pkg
 root="$out/root"
 support="$root/Library/Application Support/NTLMac"
-# Every template names the placeholder prefix; this is the one place it is replaced.
+# Every template names the default prefix; this is the one place it is replaced.
 stage() { # template, destination, mode
-  sed -e "s/com\.example\.ntlmac/$prefix/g" -e "s/__EXTENSION_ID__/$ext/g" "$1" > "$2"
+  sed -e "s/com\.devnull\.ntlmac/$prefix/g" -e "s/__EXTENSION_ID__/$ext/g" "$1" > "$2"
   chmod "$3" "$2"
 }
 rm -rf "$out"
@@ -45,12 +45,12 @@ mkdir -p "$support" "$root/Library/LaunchAgents" \
   "$root/Library/Google/Chrome/NativeMessagingHosts" "$root/Library/Microsoft/Edge/NativeMessagingHosts"
 ditto "$app" "$support/NTLMac.app"
 stage ../packaging/pkg/uninstall.sh "$support/uninstall.sh" 755
-stage ../packaging/launchd/com.example.ntlmac.agent.plist "$root/Library/LaunchAgents/$prefix.agent.plist" 644
+stage ../packaging/launchd/com.devnull.ntlmac.agent.plist "$root/Library/LaunchAgents/$prefix.agent.plist" 644
 for browser in Google/Chrome Microsoft/Edge; do
-  stage ../packaging/native-messaging/com.example.ntlmac.json "$root/Library/$browser/NativeMessagingHosts/$prefix.json" 644
+  stage ../packaging/native-messaging/com.devnull.ntlmac.json "$root/Library/$browser/NativeMessagingHosts/$prefix.json" 644
 done
 mkdir "$out/scripts" "$out/profiles"
-stage ../packaging/profiles/com.example.ntlmac.plist "$out/profiles/$prefix.plist" 644
+stage ../packaging/profiles/com.devnull.ntlmac.plist "$out/profiles/$prefix.plist" 644
 for script in preinstall postinstall; do
   stage "../packaging/pkg/scripts/$script" "$out/scripts/$script" 755
 done
@@ -58,7 +58,7 @@ done
 pkgbuild --quiet --root "$root" --component-plist ../packaging/pkg/component.plist \
   --scripts "$out/scripts" --identifier "$prefix.pkg" --version "$version" \
   --install-location / --ownership recommended "$out/NTLMac-component.pkg"
-sed -e "s/__VERSION__/$version/g" -e "s/com\.example\.ntlmac/$prefix/g" ../packaging/pkg/distribution.xml > "$out/distribution.xml"
+sed -e "s/__VERSION__/$version/g" -e "s/com\.devnull\.ntlmac/$prefix/g" ../packaging/pkg/distribution.xml > "$out/distribution.xml"
 pkg="$out/NTLMac-$version.pkg"
 if [ -n "${INSTALLER_IDENTITY:-}" ]; then
   productbuild --quiet --distribution "$out/distribution.xml" --package-path "$out" \

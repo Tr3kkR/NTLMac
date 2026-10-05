@@ -46,7 +46,7 @@ public final class PasswordChangeListener: @unchecked Sendable {
     /// `onChange` receives the notification name, on `queue`.
     public init(
         center: DarwinNotificationCenter = SystemDarwinNotificationCenter(),
-        queue: DispatchQueue = DispatchQueue(label: "com.example.ntlmac.password-change"),
+        queue: DispatchQueue = DispatchQueue(label: "com.devnull.ntlmac.password-change"),
         onChange: @escaping @Sendable (String) -> Void
     ) {
         self.center = center

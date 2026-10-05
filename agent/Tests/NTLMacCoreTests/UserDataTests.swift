@@ -23,7 +23,7 @@ private func tempDir() throws -> URL {
     @Test func defaultDirectoryHoldsTheLatchAndTheTelemetryQueue() {
         let home = URL(fileURLWithPath: "/Users/jbloggs")
         let dir = UserData.defaultDirectory(home: home)
-        #expect(dir.path == "/Users/jbloggs/Library/Application Support/com.example.ntlmac")
+        #expect(dir.path == "/Users/jbloggs/Library/Application Support/com.devnull.ntlmac")
         #expect(FileSuspectLatch.defaultURL(home: home).deletingLastPathComponent() == dir)
         #expect(TelemetryQueue.defaultDirectory(home: home).deletingLastPathComponent() == dir)
     }

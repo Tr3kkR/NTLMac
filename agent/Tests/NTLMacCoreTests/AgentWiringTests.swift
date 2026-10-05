@@ -24,14 +24,14 @@ private func tempURL(_ name: String) -> URL {
 
 @Suite struct AgentIdentityTests {
     @Test func machServiceNameIsTheAgentIdentifier() {
-        #expect(AgentXPC.machServiceName == "com.example.ntlmac.agent")
+        #expect(AgentXPC.machServiceName == "com.devnull.ntlmac.agent")
         #expect(AgentXPC.machServiceName == NTLMacIdentity.current.agent)
     }
 
     @Test func launchAgentTemplateRegistersTheMachService() throws {
         let template = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("packaging/launchd/com.example.ntlmac.agent.plist")
+            .appendingPathComponent("packaging/launchd/com.devnull.ntlmac.agent.plist")
         let plist = try #require(try PropertyListSerialization.propertyList(from: Data(contentsOf: template), format: nil) as? [String: Any])
         #expect(plist["Label"] as? String == AgentXPC.machServiceName)
         #expect((plist["MachServices"] as? [String: Bool])?[AgentXPC.machServiceName] == true)
@@ -49,23 +49,23 @@ private func tempURL(_ name: String) -> URL {
         let app = "/Library/Application Support/NTLMac/NTLMac.app"
 
         let info = try plist("app/Info.plist")
-        #expect(info["CFBundleIdentifier"] as? String == NTLMacIdentity.placeholder.agent)
+        #expect(info["CFBundleIdentifier"] as? String == NTLMacIdentity.standard.agent)
         #expect(info["CFBundleExecutable"] as? String == "NTLMacAgent")
         #expect(info["LSUIElement"] as? Bool == true, "no Dock icon or menu bar")
 
-        let agent = try plist("launchd/com.example.ntlmac.agent.plist")
+        let agent = try plist("launchd/com.devnull.ntlmac.agent.plist")
         #expect(agent["ProgramArguments"] as? [String] == ["\(app)/Contents/MacOS/NTLMacAgent"])
-        #expect(agent["AssociatedBundleIdentifiers"] as? String == NTLMacIdentity.placeholder.agent)
+        #expect(agent["AssociatedBundleIdentifiers"] as? String == NTLMacIdentity.standard.agent)
 
         let manifest = try #require(try JSONSerialization.jsonObject(
-            with: Data(contentsOf: packaging.appendingPathComponent("native-messaging/com.example.ntlmac.json"))) as? [String: Any])
+            with: Data(contentsOf: packaging.appendingPathComponent("native-messaging/com.devnull.ntlmac.json"))) as? [String: Any])
         #expect(manifest["path"] as? String == "\(app)/Contents/MacOS/ntlmac-nmh")
     }
 
     @Test func theKeychainAccessGroupIsTeamPrefixed() throws {
         // macOS honours a team-prefixed keychain-access-groups entry without a
         // provisioning profile (checked with a signed probe, 2026-10-05).
-        #expect(try CodeSigningPolicy(teamID: "ABCDE12345").keychainAccessGroup == "ABCDE12345.com.example.ntlmac")
+        #expect(try CodeSigningPolicy(teamID: "ABCDE12345").keychainAccessGroup == "ABCDE12345.com.devnull.ntlmac")
     }
 
     @Test func theAgentEntitlementsGrantThePolicysAccessGroup() throws {
@@ -86,7 +86,7 @@ private func tempURL(_ name: String) -> URL {
 
     @Test func telemetryQueueLivesInTheUsersApplicationSupport() {
         let home = URL(fileURLWithPath: "/Users/jbloggs")
-        #expect(TelemetryQueue.defaultDirectory(home: home).path == "/Users/jbloggs/Library/Application Support/com.example.ntlmac/telemetry")
+        #expect(TelemetryQueue.defaultDirectory(home: home).path == "/Users/jbloggs/Library/Application Support/com.devnull.ntlmac/telemetry")
     }
 }
 
@@ -98,7 +98,7 @@ private func tempURL(_ name: String) -> URL {
 
     @Test func readsEveryOverrideInDebugBuilds() {
         let o = DebugOverrides.fromEnvironment([
-            "NTLMAC_MACH_SERVICE": "com.example.ntlmac.agent.test-1",
+            "NTLMAC_MACH_SERVICE": "com.devnull.ntlmac.agent.test-1",
             "NTLMAC_AGENT_REQUIREMENT": #"cdhash H"aa""#,
             "NTLMAC_SHIM_REQUIREMENT": #"cdhash H"bb""#,
             "NTLMAC_CONFIG": "/tmp/config.json",
@@ -108,7 +108,7 @@ private func tempURL(_ name: String) -> URL {
             "NTLMAC_NO_DIALOG": "1",
             "UNRELATED": "x",
         ])
-        #expect(o.machServiceName == "com.example.ntlmac.agent.test-1")
+        #expect(o.machServiceName == "com.devnull.ntlmac.agent.test-1")
         #expect(o.agentRequirement == #"cdhash H"aa""#)
         #expect(o.shimRequirement == #"cdhash H"bb""#)
         #expect(o.configFile == "/tmp/config.json")
@@ -225,7 +225,7 @@ private final class Counter: @unchecked Sendable {
 
     @Test func agentNotRunningDeclinesQuickly() async throws {
         let forwarder = AgentForwarder {
-            AgentXPCClient(machServiceName: "com.example.ntlmac.test.absent-\(UUID().uuidString)", agentRequirement: try! ownRequirement())
+            AgentXPCClient(machServiceName: "com.devnull.ntlmac.test.absent-\(UUID().uuidString)", agentRequirement: try! ownRequirement())
         }
         let start = Date()
         #expect(await forwarder.forward(request) == .decline(.agentUnavailable))
@@ -261,7 +261,7 @@ private final class Counter: @unchecked Sendable {
         let connects = Counter()
         let forwarder = AgentForwarder {
             connects.increment()
-            return AgentXPCClient(machServiceName: "com.example.ntlmac.test.absent-\(UUID().uuidString)", agentRequirement: "anchor apple")
+            return AgentXPCClient(machServiceName: "com.devnull.ntlmac.test.absent-\(UUID().uuidString)", agentRequirement: "anchor apple")
         }
         _ = await forwarder.forward(request)
         _ = await forwarder.forward(request)

@@ -4,7 +4,7 @@ import IOKit
 import NTLMacCore
 import os
 
-// NTLMac agent: a per-user LaunchAgent (packaging/launchd/com.example.ntlmac.agent.plist).
+// NTLMac agent: a per-user LaunchAgent (packaging/launchd/com.devnull.ntlmac.agent.plist).
 // Answers the native host over XPC, owns the credential, watches for AD password changes
 // and exports telemetry. The decisions are in NTLMacCore.AgentService.
 

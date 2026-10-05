@@ -3,7 +3,7 @@ import Security
 
 // Looks up the agent's credential item in the data-protection Keychain and prints the
 // status, and the account if found. Asks for attributes only, never the password.
-//   keychain-probe <service, e.g. com.example.ntlmac.credential> [<access group> | -]
+//   keychain-probe <service, e.g. com.devnull.ntlmac.credential> [<access group> | -]
 // 0 found; -25300 errSecItemNotFound; -34018 errSecMissingEntitlement.
 let args = Array(CommandLine.arguments.dropFirst())
 guard let service = args.first else { print("usage: keychain-probe <service> [<access group> | -]"); exit(64) }

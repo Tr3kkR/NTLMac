@@ -5,9 +5,9 @@
 # Usage: [SIGN_IDENTITY=<identity>] [NTLMAC_PREFIX=<reverse DNS>] agent/scripts/make-app.sh [debug|release]
 #   -> agent/.build/<config>/NTLMac.app   (release is universal: arm64 + x86_64)
 #
-# NTLMAC_PREFIX (default com.example.ntlmac, the repository's placeholder) replaces
-# com.example.ntlmac in the bundle ID, the signing identifiers and the Keychain group. The
-# binaries read it back from their own signing identifiers (NTLMacIdentity).
+# NTLMAC_PREFIX (default com.devnull.ntlmac) replaces com.devnull.ntlmac in the bundle ID,
+# the signing identifiers and the Keychain group. The binaries read it back from their own
+# signing identifiers (NTLMacIdentity).
 #
 # Signs ad hoc by default, which is enough to run it locally (the e2e suites use debug
 # overrides instead of a team). With SIGN_IDENTITY (a Developer ID Application identity
@@ -22,7 +22,7 @@ cd "$(dirname "$0")/.."
 
 config="${1:-debug}"
 identity="${SIGN_IDENTITY:--}"
-prefix="${NTLMAC_PREFIX:-com.example.ntlmac}"
+prefix="${NTLMAC_PREFIX:-com.devnull.ntlmac}"
 # As NTLMacIdentity: 2+ labels of [a-z0-9_] (requirement strings, native host names).
 printf '%s' "$prefix" | grep -Eqx '[a-z0-9_]+(\.[a-z0-9_]+)+' \
   || { echo "NTLMAC_PREFIX must be reverse DNS: lowercase letters, digits, _ and dots" >&2; exit 64; }
@@ -40,7 +40,7 @@ app=".build/$config/NTLMac.app"
 
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS"
-sed -e "s/__VERSION__/$version/g" -e "s/com\.example\.ntlmac/$prefix/g" ../packaging/app/Info.plist > "$app/Contents/Info.plist"
+sed -e "s/__VERSION__/$version/g" -e "s/com\.devnull\.ntlmac/$prefix/g" ../packaging/app/Info.plist > "$app/Contents/Info.plist"
 plutil -lint -s "$app/Contents/Info.plist"
 cp "$bin/NTLMacAgent" "$bin/ntlmac-nmh" "$app/Contents/MacOS/"
 
@@ -59,7 +59,7 @@ else
   esac
   entitlements=$(mktemp -t ntlmac-entitlements)
   trap 'rm -f "$entitlements"' EXIT
-  sed -e "s/__TEAM_ID__/$team/g" -e "s/com\.example\.ntlmac/$prefix/g" ../packaging/app/NTLMacAgent.entitlements > "$entitlements"
+  sed -e "s/__TEAM_ID__/$team/g" -e "s/com\.devnull\.ntlmac/$prefix/g" ../packaging/app/NTLMacAgent.entitlements > "$entitlements"
   plutil -lint -s "$entitlements"
   codesign --force --sign "$identity" --options runtime --timestamp --entitlements "$entitlements" "$app"
 fi

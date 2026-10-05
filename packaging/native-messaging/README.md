@@ -1,4 +1,4 @@
-The pkg installs `com.example.ntlmac.json` (with `__EXTENSION_ID__` substituted) into both
+The pkg installs `com.devnull.ntlmac.json` (with `__EXTENSION_ID__` substituted) into both
 system-level locations:
 
 - `/Library/Google/Chrome/NativeMessagingHosts/`

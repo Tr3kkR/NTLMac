@@ -3,7 +3,7 @@
 #
 #   SIGN_IDENTITY=<identity with a team ID> [NTLMAC_PREFIX=<reverse DNS>] test/manual/signed-proof.sh
 #
-# NTLMAC_PREFIX (default com.example.ntlmac) is passed to make-app.sh; every name below
+# NTLMAC_PREFIX (default com.devnull.ntlmac) is passed to make-app.sh; every name below
 # (<prefix>.agent, the Keychain service and group, the data folder) follows it.
 #
 # A. Release NTLMac.app, signed, as a throwaway LaunchAgent on the real Mach service
@@ -25,7 +25,7 @@
 # and boots them out on exit; writes, then deletes, one Keychain item.
 set -eu
 : "${SIGN_IDENTITY:?set SIGN_IDENTITY to a code-signing identity with a team ID}"
-PREFIX="${NTLMAC_PREFIX:-com.example.ntlmac}"
+PREFIX="${NTLMAC_PREFIX:-com.devnull.ntlmac}"
 export NTLMAC_PREFIX="$PREFIX"
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 RUN=$(mktemp -d -t ntlmac-signed)
@@ -76,7 +76,7 @@ swiftc -O "$ROOT/test/manual/keychain-probe.swift" -o "$RUN/probe-adhoc" 2>/dev/
 cp "$RUN/probe-adhoc" "$RUN/probe-team"
 codesign -f -s "$SIGN_IDENTITY" -o runtime "$RUN/probe-team" 2>/dev/null
 cp "$RUN/probe-adhoc" "$RUN/probe-entitled-bin"
-sed -e "s/__TEAM_ID__/$TEAM/" -e "s/com\.example\.ntlmac/$PREFIX/g" "$ROOT/packaging/app/NTLMacAgent.entitlements" > "$RUN/entitlements.plist"
+sed -e "s/__TEAM_ID__/$TEAM/" -e "s/com\.devnull\.ntlmac/$PREFIX/g" "$ROOT/packaging/app/NTLMacAgent.entitlements" > "$RUN/entitlements.plist"
 codesign -f -s "$SIGN_IDENTITY" -o runtime --entitlements "$RUN/entitlements.plist" "$RUN/probe-entitled-bin" 2>/dev/null
 printf '#!/bin/sh\nexec "%s" "%s" "%s"\n' "$RUN/probe-entitled-bin" "$CREDENTIAL" "$GROUP" > "$RUN/probe-entitled"
 chmod +x "$RUN/probe-entitled"

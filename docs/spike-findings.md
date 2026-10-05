@@ -164,7 +164,7 @@ under 0.3 s.
 
 ### Signed end to end (`test/manual/signed-proof.sh`, 2026-10-05)
 Signed with an Apple Development identity (team-signed, hardened runtime, timestamp),
-a non-placeholder `NTLMAC_PREFIX`, test account only:
+`NTLMAC_PREFIX=com.devnull.ntlmac` (now the default), test account only:
 
 | Check | Result |
 |---|---|

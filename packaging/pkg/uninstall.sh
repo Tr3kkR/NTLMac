@@ -11,7 +11,7 @@
 set -u
 [ "$(id -u)" = 0 ] || { echo "uninstall.sh: run as root" >&2; exit 1; }
 
-LABEL=com.example.ntlmac.agent
+LABEL=com.devnull.ntlmac.agent
 SUPPORT="/Library/Application Support/NTLMac"
 AGENT="$SUPPORT/NTLMac.app/Contents/MacOS/NTLMacAgent"
 
@@ -28,12 +28,12 @@ for uid in $(ps -axo uid=,comm= | awk '$2 ~ /\/loginwindow$/ && $1 != 0 { print 
   fi
 done
 
-for dir in /Users/*/Library/Application\ Support/com.example.ntlmac; do
+for dir in /Users/*/Library/Application\ Support/com.devnull.ntlmac; do
   [ -d "$dir" ] && rm -rf "$dir"
 done
 rm -f "/Library/LaunchAgents/$LABEL.plist" \
-  /Library/Google/Chrome/NativeMessagingHosts/com.example.ntlmac.json \
-  /Library/Microsoft/Edge/NativeMessagingHosts/com.example.ntlmac.json
+  /Library/Google/Chrome/NativeMessagingHosts/com.devnull.ntlmac.json \
+  /Library/Microsoft/Edge/NativeMessagingHosts/com.devnull.ntlmac.json
 rm -rf "$SUPPORT"
-pkgutil --forget com.example.ntlmac.pkg >/dev/null 2>&1 || true
+pkgutil --forget com.devnull.ntlmac.pkg >/dev/null 2>&1 || true
 echo "uninstall.sh: NTLMac removed"

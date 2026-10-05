@@ -5,7 +5,7 @@
   (root-owned, 644) so it loads for every GUI login; the postinstall script bootstraps it
   into gui/<uid> for a user who is already logged in.
 
-  MachServices registers com.example.ntlmac.agent (AgentXPC.machServiceName), which the
+  MachServices registers com.devnull.ntlmac.agent (AgentXPC.machServiceName), which the
   native host connects to. RunAtLoad + KeepAlive keep the agent running so it hears AD
   password-change notifications and flushes telemetry even when no browser asks it
   anything. It refuses to start unless it is signed with a team ID, so an unsigned copy
@@ -14,14 +14,14 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.example.ntlmac.agent</string>
+  <string>com.devnull.ntlmac.agent</string>
   <key>ProgramArguments</key>
   <array>
     <string>/Library/Application Support/NTLMac/NTLMac.app/Contents/MacOS/NTLMacAgent</string>
   </array>
   <key>MachServices</key>
   <dict>
-    <key>com.example.ntlmac.agent</key>
+    <key>com.devnull.ntlmac.agent</key>
     <true/>
   </dict>
   <key>RunAtLoad</key>
@@ -37,6 +37,6 @@
   <string>Adaptive</string>
   <!-- Shows the agent under the signed app's name in System Settings > Login Items. -->
   <key>AssociatedBundleIdentifiers</key>
-  <string>com.example.ntlmac.agent</string>
+  <string>com.devnull.ntlmac.agent</string>
 </dict>
 </plist>

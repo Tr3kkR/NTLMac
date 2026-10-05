@@ -1,5 +1,5 @@
 {
-  "name": "com.example.ntlmac",
+  "name": "com.devnull.ntlmac",
   "description": "NTLMac native messaging host",
   "path": "/Library/Application Support/NTLMac/NTLMac.app/Contents/MacOS/ntlmac-nmh",
   "type": "stdio",

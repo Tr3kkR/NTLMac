@@ -80,20 +80,20 @@ private final class FakeKeychain: KeychainAPI, @unchecked Sendable {
 
 @Suite struct KeychainCredentialStoreTests {
     private func store(_ api: FakeKeychain, accessGroup: String? = nil) -> KeychainCredentialStore {
-        KeychainCredentialStore(service: "com.example.ntlmac.credential", accessGroup: accessGroup, api: api)
+        KeychainCredentialStore(service: "com.devnull.ntlmac.credential", accessGroup: accessGroup, api: api)
     }
 
     @Test func newItemIsThisDeviceOnlyNotSynchronisedAndInTheDataProtectionKeychain() throws {
         let api = FakeKeychain()
-        try store(api, accessGroup: "ABCDE12345.com.example.ntlmac").write(credential)
+        try store(api, accessGroup: "ABCDE12345.com.devnull.ntlmac").write(credential)
         let add = try #require(api.calls.first { $0.op == "add" }?.query)
         #expect(add[kSecClass as String] as? String == kSecClassGenericPassword as String)
-        #expect(add[kSecAttrService as String] as? String == "com.example.ntlmac.credential")
+        #expect(add[kSecAttrService as String] as? String == "com.devnull.ntlmac.credential")
         #expect(add[kSecAttrAccount as String] as? String == "jbloggs")
         #expect(add[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
         #expect(add[kSecAttrSynchronizable as String] as? Bool == false)
         #expect(add[kSecUseDataProtectionKeychain as String] as? Bool == true)
-        #expect(add[kSecAttrAccessGroup as String] as? String == "ABCDE12345.com.example.ntlmac")
+        #expect(add[kSecAttrAccessGroup as String] as? String == "ABCDE12345.com.devnull.ntlmac")
         #expect(add[kSecValueData as String] as? Data == Data(secret.utf8))
     }
 
@@ -106,7 +106,7 @@ private final class FakeKeychain: KeychainAPI, @unchecked Sendable {
         try s.delete()
         #expect(api.calls.map(\.op) == ["add", "copy", "add", "update", "delete"])
         for call in api.calls where call.op != "update" {
-            #expect(call.query[kSecAttrService as String] as? String == "com.example.ntlmac.credential", "\(call.op)")
+            #expect(call.query[kSecAttrService as String] as? String == "com.devnull.ntlmac.credential", "\(call.op)")
             #expect(call.query[kSecUseDataProtectionKeychain as String] as? Bool == true, "\(call.op)")
             #expect(call.query[kSecAttrSynchronizable as String] as? Bool == false, "\(call.op)")
         }
@@ -141,7 +141,7 @@ private final class FakeKeychain: KeychainAPI, @unchecked Sendable {
     /// agent must ship signed with that entitlement. (Whether an unentitled process can
     /// read the agent's existing item needs a signed agent to create one: spike item d.)
     @Test func unentitledProcessesCannotWriteTheRealItem() throws {
-        let real = KeychainCredentialStore(service: "com.example.ntlmac.test-\(UUID().uuidString)")
+        let real = KeychainCredentialStore(service: "com.devnull.ntlmac.test-\(UUID().uuidString)")
         #expect(throws: KeychainError.status(errSecMissingEntitlement)) { try real.write(credential) }
         #expect(try real.read() == nil)
     }

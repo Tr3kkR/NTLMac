@@ -15,9 +15,9 @@ private let custom = NTLMacIdentity(prefix: "org.test.ntlmac")!
             == "/Users/jbloggs/Library/Application Support/org.test.ntlmac")
     }
 
-    @Test func thePlaceholderIsTheRepositorysPrefix() {
-        #expect(NTLMacIdentity.placeholder.prefix == "com.example.ntlmac")
-        #expect(NTLMacIdentity.placeholder.agent == "com.example.ntlmac.agent")
+    @Test func theDefaultIsTheProductionPrefix() {
+        #expect(NTLMacIdentity.standard.prefix == "com.devnull.ntlmac")
+        #expect(NTLMacIdentity.standard.agent == "com.devnull.ntlmac.agent")
     }
 
     @Test(arguments: ["org.test.ntlmac.agent", "org.test.ntlmac.nmh"])
@@ -26,8 +26,8 @@ private let custom = NTLMacIdentity(prefix: "org.test.ntlmac")!
     }
 
     @Test(arguments: [nil, "ntlmac-nmh", "NTLMacAgent", "com.apple.dt.xctest.tool", "agent", ".agent", "org.test.ntlmac.impostor"] as [String?])
-    func anyOtherIdentifierMeansThePlaceholder(identifier: String?) {
-        #expect(NTLMacIdentity(signingIdentifier: identifier) == .placeholder)
+    func anyOtherIdentifierMeansTheDefault(identifier: String?) {
+        #expect(NTLMacIdentity(signingIdentifier: identifier) == .standard)
     }
 
     // Prefixes end up in code-signing requirement strings and native-messaging host names
@@ -35,10 +35,10 @@ private let custom = NTLMacIdentity(prefix: "org.test.ntlmac")!
     @Test(arguments: [#"com.example" or true"#, "", "com example", "ntlmac", "com..ntlmac", ".com.ntlmac", "com.ntlmac.", "Com.Example.ntlmac", "com.my-org.ntlmac", #"com.x"y.ntlmac"#])
     func rejectsMalformedPrefixes(prefix: String) {
         #expect(NTLMacIdentity(prefix: prefix) == nil)
-        #expect(NTLMacIdentity(signingIdentifier: prefix + ".agent") == .placeholder)
+        #expect(NTLMacIdentity(signingIdentifier: prefix + ".agent") == .standard)
     }
 
-    @Test func thisTestProcessUsesThePlaceholder() {
-        #expect(NTLMacIdentity.current == .placeholder)
+    @Test func thisTestProcessUsesTheDefault() {
+        #expect(NTLMacIdentity.current == .standard)
     }
 }

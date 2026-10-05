@@ -99,7 +99,7 @@ export async function startServer(port: number, flags: string[] = []): Promise<S
 // MARK: Agent
 
 const GUI_DOMAIN = `gui/${process.getuid!()}`;
-const TEST_LABEL_PREFIX = "com.example.ntlmac.agent.test.";
+const TEST_LABEL_PREFIX = "com.devnull.ntlmac.agent.test.";
 
 /** A binary's designated requirement; for ad-hoc debug builds, `cdhash H"…"`. */
 function designatedRequirement(path: string): string {
@@ -276,9 +276,9 @@ export async function launch(opts: LaunchOptions): Promise<Session> {
   // Chromium reads user-level native messaging manifests from <user-data-dir>/NativeMessagingHosts.
   mkdirSync(join(profile, "NativeMessagingHosts"), { recursive: true });
   writeFileSync(
-    join(profile, "NativeMessagingHosts", "com.example.ntlmac.json"),
+    join(profile, "NativeMessagingHosts", "com.devnull.ntlmac.json"),
     JSON.stringify({
-      name: "com.example.ntlmac",
+      name: "com.devnull.ntlmac",
       description: "NTLMac test host",
       path: hostPath,
       type: "stdio",

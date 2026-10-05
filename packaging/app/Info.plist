@@ -10,7 +10,7 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleIdentifier</key>
-  <string>com.example.ntlmac.agent</string>
+  <string>com.devnull.ntlmac.agent</string>
   <key>CFBundleName</key>
   <string>NTLMac</string>
   <key>CFBundleDisplayName</key>

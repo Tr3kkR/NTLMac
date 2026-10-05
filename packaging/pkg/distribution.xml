@@ -11,12 +11,12 @@
   </volume-check>
   <choices-outline>
     <line choice="default">
-      <line choice="com.example.ntlmac.pkg"/>
+      <line choice="com.devnull.ntlmac.pkg"/>
     </line>
   </choices-outline>
   <choice id="default"/>
-  <choice id="com.example.ntlmac.pkg" visible="false">
-    <pkg-ref id="com.example.ntlmac.pkg"/>
+  <choice id="com.devnull.ntlmac.pkg" visible="false">
+    <pkg-ref id="com.devnull.ntlmac.pkg"/>
   </choice>
-  <pkg-ref id="com.example.ntlmac.pkg" version="__VERSION__" onConclusion="none">NTLMac-component.pkg</pkg-ref>
+  <pkg-ref id="com.devnull.ntlmac.pkg" version="__VERSION__" onConclusion="none">NTLMac-component.pkg</pkg-ref>
 </installer-gui-script>

@@ -6,9 +6,9 @@
 |---|---|
 | `/Library/Application Support/NTLMac/NTLMac.app` (agent + native host) | root:wheel, 755 |
 | `/Library/Application Support/NTLMac/uninstall.sh` | root:wheel, 755 |
-| `/Library/LaunchAgents/com.example.ntlmac.agent.plist` | root:wheel, 644 |
-| `/Library/Google/Chrome/NativeMessagingHosts/com.example.ntlmac.json` | root:wheel, 644 |
-| `/Library/Microsoft/Edge/NativeMessagingHosts/com.example.ntlmac.json` | root:wheel, 644 |
+| `/Library/LaunchAgents/com.devnull.ntlmac.agent.plist` | root:wheel, 644 |
+| `/Library/Google/Chrome/NativeMessagingHosts/com.devnull.ntlmac.json` | root:wheel, 644 |
+| `/Library/Microsoft/Edge/NativeMessagingHosts/com.devnull.ntlmac.json` | root:wheel, 644 |
 
 The manifests name the extension: `EXTENSION_ID` (required) is substituted into
 `allowed_origins`. The app is not relocatable, so Installer never "upgrades" a copy found
@@ -34,7 +34,7 @@ Run `"/Library/Application Support/NTLMac/uninstall.sh"` as root, for example fr
 policy. For each logged-in user it:
 1. boots the agent out;
 2. runs `NTLMacAgent --remove-user-data` as that user (`launchctl asuser` + `sudo -u`).
-   This deletes the Keychain item and `~/Library/Application Support/com.example.ntlmac`
+   This deletes the Keychain item and `~/Library/Application Support/com.devnull.ntlmac`
    (suspect latch, telemetry queue).
 
 Only the agent can do step 2: a data-protection Keychain item can be deleted only by a
@@ -50,7 +50,7 @@ breaker re-prompts.
 ## Signing and notarisation (manual, needs Developer ID)
 
 `make-app.sh` (via `SIGN_IDENTITY`) gives both executables the hardened runtime and a
-secure timestamp. It gives the agent `keychain-access-groups = <TEAM>.com.example.ntlmac`
+secure timestamp. It gives the agent `keychain-access-groups = <TEAM>.com.devnull.ntlmac`
 (`packaging/app/NTLMacAgent.entitlements`), with the team read from the signature.
 
 **No provisioning profile is needed** for a team-prefixed access group. This was checked
@@ -81,24 +81,24 @@ Developer ID build** (step 5).
    - `xcrun stapler validate <pkg>` passes;
    - `spctl -a -vv -t install <pkg>` reports `source=Notarized Developer ID`.
 5. On a test Mac: install, enrol with a test account, and check the agent's log (`log show
-   --predicate 'subsystem == "com.example.ntlmac"'`) for -34018. Then run `uninstall.sh`
+   --predicate 'subsystem == "com.devnull.ntlmac"'`) for -34018. Then run `uninstall.sh`
    and confirm the item is gone.
 
 ## Prefix
 
-`NTLMAC_PREFIX=<reverse DNS>` (default `com.example.ntlmac`, the repository's placeholder)
-replaces `com.example.ntlmac` in the app's bundle ID, both signing identifiers, the
+`NTLMAC_PREFIX=<reverse DNS>` (default `com.devnull.ntlmac`)
+replaces `com.devnull.ntlmac` in the app's bundle ID, both signing identifiers, the
 Keychain group, the LaunchAgent (name, label, Mach service), the manifests (name, file
 name), the scripts and the package identifier. The prefix needs at least two labels of
 lowercase letters, digits and `_`, because it is also the native-messaging host name.
 The binaries need no rebuild: each reads the prefix back from its own signing identifier
 (`<prefix>.agent`, `<prefix>.nmh`), as it does the team ID. An unsigned or bare build gets
-the placeholder.
+the default.
 
 Two other things must match the prefix:
 - the extension's native host name: build it with the same variable,
   `NTLMAC_PREFIX=<prefix> npm run build` in `extension/`. A post-build step replaces the
-  placeholder in `dist/logic.js`, and fails unless it finds it exactly once;
+  default prefix in `dist/logic.js`, and fails unless it finds it exactly once;
 - the Jamf preference profile's domain: `make-pkg.sh` writes
   `agent/.build/pkg/profiles/<prefix>.plist` next to the package. Upload it under preference
   domain `<prefix>`, after filling in its `__…__` placeholders.

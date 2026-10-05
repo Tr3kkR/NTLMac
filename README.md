@@ -29,12 +29,12 @@ contains no NTLM implementation.
 | `test/kdc/` | Throwaway MIT KDC (Docker) for checking the Kerberos password validation against a real KDC; also the manual procedure against AD. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
-| `packaging/` | `NTLMac.app` Info.plist and agent entitlements, native-messaging manifest, LaunchAgent plist, the installer package (`pkg/`: scripts, uninstaller, signing and notarisation procedure) and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
+| `packaging/` | `NTLMac.app` Info.plist and agent entitlements, native-messaging manifest, LaunchAgent plist, the installer package (`pkg/`: scripts, uninstaller, signing and notarisation procedure) and Jamf profile templates (`com.devnull.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
 
 Identifiers (Mach service, bundle and signing identifiers, native host name, preference
-domain, Keychain service and group) use the placeholder prefix `com.example.ntlmac`. Build
-with your organisation's prefix by setting `NTLMAC_PREFIX` for `make-app.sh` /
+domain, Keychain service and group) use the prefix `com.devnull.ntlmac` by default. Build
+with another prefix by setting `NTLMAC_PREFIX` for `make-app.sh` /
 `make-pkg.sh`. The binaries read the prefix back from their own signing identifiers
 (`NTLMacIdentity`); see [packaging/pkg/README.md](packaging/pkg/README.md) for what else
 must match.

@@ -2,8 +2,8 @@
 # Builds the installer package (ad hoc, test extension ID) and checks it without
 # installing anything: payload paths, owners and modes, the native-messaging manifests,
 # a non-relocatable app, the install scripts and the uninstaller. Runs twice: with the
-# repository's placeholder prefix and with a custom NTLMAC_PREFIX, which must leave no
-# trace of the placeholder in the payload's names and text.
+# default prefix and with a custom NTLMAC_PREFIX, which must leave no trace of the
+# default in the payload's names and text.
 #
 # Usage: test/packaging/check-pkg.sh
 set -eu
@@ -59,11 +59,11 @@ assert m['path'] == '$NMH_PATH', m
 assert m['name'] == '$PREFIX'" "$P/Library/$dir/NativeMessagingHosts/$PREFIX.json"
   done
   check "nothing else in the payload" sh -c "cd '$P' && [ \"\$(find . -type f ! -path './$SUPPORT/NTLMac.app/*' | sort)\" = \"\$(printf '%s\n' './$SUPPORT/uninstall.sh' ./Library/Google/Chrome/NativeMessagingHosts/$PREFIX.json './$LAUNCH_AGENT' ./Library/Microsoft/Edge/NativeMessagingHosts/$PREFIX.json)\" ]"
-  if [ "$PREFIX" != com.example.ntlmac ]; then
-    # The binaries keep the placeholder as their fallback; everything else must not.
-    check "no placeholder left in names or text" sh -c "
-      [ -z \"\$(find '$X' -name '*com.example.ntlmac*')\" ] &&
-      ! grep -rIl 'com\.example\.ntlmac' '$X' --exclude=NTLMacAgent --exclude=ntlmac-nmh --exclude=Bom --exclude=Payload"
+  if [ "$PREFIX" != com.devnull.ntlmac ]; then
+    # The binaries keep the default as their fallback; everything else must not.
+    check "no default prefix left in names or text" sh -c "
+      [ -z \"\$(find '$X' -name '*com.devnull.ntlmac*')\" ] &&
+      ! grep -rIl 'com\.devnull\.ntlmac' '$X' --exclude=NTLMacAgent --exclude=ntlmac-nmh --exclude=Bom --exclude=Payload"
   fi
 
   # Owners and modes from the bill of materials: everything root:wheel, no group/other
@@ -102,7 +102,7 @@ assert m['name'] == '$PREFIX'" "$P/Library/$dir/NativeMessagingHosts/$PREFIX.jso
   check "profile comment names the $PREFIX domain" grep -q "preference domain: $PREFIX)" "$PROFILE"
 }
 
-check_package com.example.ntlmac
+check_package com.devnull.ntlmac
 check_package org.test.ntlmac
 
 [ "$fail" = 0 ] && echo "OK"

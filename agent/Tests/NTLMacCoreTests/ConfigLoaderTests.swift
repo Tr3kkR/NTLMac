@@ -52,7 +52,7 @@ import Testing
     @Test func jamfProfileTemplateDecodes() throws {
         let template = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("packaging/profiles/com.example.ntlmac.plist")
+            .appendingPathComponent("packaging/profiles/com.devnull.ntlmac.plist")
         let plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: template), format: nil)
         let config = try ConfigLoader.decode(preferences: try #require(plist as? [String: Any]))
         #expect(config.enabled)

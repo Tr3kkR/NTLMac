@@ -1,6 +1,6 @@
 // Pure helpers for the service worker; kept free of chrome.* so they run under node --test.
 
-export const NATIVE_HOST = "com.example.ntlmac";
+export const NATIVE_HOST = "com.devnull.ntlmac";
 /** If the agent hasn't answered by then, fall back to the browser's own prompt. */
 export const AGENT_TIMEOUT_MS = 3000;
 

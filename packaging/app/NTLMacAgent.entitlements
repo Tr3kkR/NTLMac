@@ -10,7 +10,7 @@
 <dict>
   <key>keychain-access-groups</key>
   <array>
-    <string>__TEAM_ID__.com.example.ntlmac</string>
+    <string>__TEAM_ID__.com.devnull.ntlmac</string>
   </array>
 </dict>
 </plist>

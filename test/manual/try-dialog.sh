@@ -5,7 +5,7 @@
 #   then a rejected retry -> "Intranet sign-in paused" dialog.
 #
 # Changes your login session briefly: bootstraps a throwaway LaunchAgent
-# (com.example.ntlmac.agent.test.dialog-<pid>, plist in a temp dir) and boots it out on
+# (com.devnull.ntlmac.agent.test.dialog-<pid>, plist in a temp dir) and boots it out on
 # exit. Puts the real dialog on screen. Needs Docker. Never touches the real Keychain:
 # the credential goes to a file in the temp dir (DEBUG-only override).
 #
@@ -18,7 +18,7 @@ APP="$ROOT/agent/.build/debug/NTLMac.app"
 AGENT="$APP/Contents/MacOS/NTLMacAgent"
 NMH="$APP/Contents/MacOS/ntlmac-nmh"
 GUI="gui/$(id -u)"
-LABEL="com.example.ntlmac.agent.test.dialog-$$"
+LABEL="com.devnull.ntlmac.agent.test.dialog-$$"
 KDC="ntlmac-kdc-dialog-$$"
 RUN=$(mktemp -d -t ntlmac-dialog)
 designated() { codesign -d -r- "$1" 2>&1 | sed -n 's/.*designated => //p'; }
