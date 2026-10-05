@@ -181,6 +181,7 @@ export async function startAgent(run: string, configJSON: object, credentialLine
         NTLMAC_CONFIG: configPath,
         NTLMAC_TEST_CREDENTIAL_FILE: credential,
         NTLMAC_TELEMETRY_DIR: join(run, "telemetry"),
+        NTLMAC_SUSPECT_LATCH_FILE: join(run, "credential-suspect"),
       },
     }),
   );

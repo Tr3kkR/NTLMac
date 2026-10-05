@@ -104,6 +104,7 @@ do {
 
 let service = AgentService(
     store: store,
+    latch: FileSuspectLatch(url: overrides.suspectLatchFile.map { URL(fileURLWithPath: $0) } ?? FileSuspectLatch.defaultURL()),
     telemetry: telemetry,
     // `app-sso` parsing waits on spike item (b); until then enduser.id is the stored account.
     users: FixedUserProvider(realm: "", user: nil),

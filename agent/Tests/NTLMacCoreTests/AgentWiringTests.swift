@@ -64,6 +64,7 @@ private func tempURL(_ name: String) -> URL {
             "NTLMAC_CONFIG": "/tmp/config.json",
             "NTLMAC_TEST_CREDENTIAL_FILE": "/tmp/credential",
             "NTLMAC_TELEMETRY_DIR": "/tmp/telemetry",
+            "NTLMAC_SUSPECT_LATCH_FILE": "/tmp/suspect",
             "UNRELATED": "x",
         ])
         #expect(o.machServiceName == "com.example.ntlmac.agent.test-1")
@@ -72,11 +73,48 @@ private func tempURL(_ name: String) -> URL {
         #expect(o.configFile == "/tmp/config.json")
         #expect(o.credentialFile == "/tmp/credential")
         #expect(o.telemetryDirectory == "/tmp/telemetry")
+        #expect(o.suspectLatchFile == "/tmp/suspect")
         #expect(!o.isEmpty)
     }
 
     @Test func emptyValuesAreIgnored() {
         #expect(DebugOverrides.fromEnvironment(["NTLMAC_MACH_SERVICE": ""]).isEmpty)
+    }
+}
+
+@Suite struct FileSuspectLatchTests {
+    @Test func startsUnsetAndRoundTrips() throws {
+        let url = tempURL("latch").appendingPathComponent("credential-suspect")
+        let latch = FileSuspectLatch(url: url)
+        #expect(!latch.isSet)
+        try latch.set()
+        #expect(FileSuspectLatch(url: url).isSet, "a new process sees it")
+        try latch.clear()
+        #expect(!FileSuspectLatch(url: url).isSet)
+    }
+
+    @Test func isPrivateToTheUser() throws {
+        let url = tempURL("latch").appendingPathComponent("credential-suspect")
+        try FileSuspectLatch(url: url).set()
+        let file = try FileManager.default.attributesOfItem(atPath: url.path)
+        let dir = try FileManager.default.attributesOfItem(atPath: url.deletingLastPathComponent().path)
+        #expect(file[.posixPermissions] as? Int == 0o600)
+        #expect(dir[.posixPermissions] as? Int == 0o700)
+    }
+
+    @Test func settingTwiceAndClearingTwiceAreFine() throws {
+        let latch = FileSuspectLatch(url: tempURL("latch"))
+        try latch.set()
+        try latch.set()
+        try latch.clear()
+        try latch.clear()
+        #expect(!latch.isSet)
+    }
+
+    @Test func liveNextToTheTelemetryQueue() {
+        let home = URL(fileURLWithPath: "/Users/someone")
+        #expect(FileSuspectLatch.defaultURL(home: home).deletingLastPathComponent()
+            == TelemetryQueue.defaultDirectory(home: home).deletingLastPathComponent())
     }
 }
 

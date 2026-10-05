@@ -82,12 +82,23 @@ private actor CapturingTransport: TelemetryTransport {
 /// points as attribute dictionaries with their counts.
 private struct Harness {
     let store: FlakyStore
+    let latch: InMemorySuspectLatch
+    let validator: ScriptedValidator.Answer
     let prompter = RecordingPrompter()
     let transport = CapturingTransport()
     let service: AgentService
 
-    init(credential: Credential? = jbloggs, validator: ScriptedValidator.Answer = .valid, user: String? = "jbloggs") throws {
-        store = FlakyStore(credential)
+    init(
+        credential: Credential? = jbloggs,
+        validator: ScriptedValidator.Answer = .valid,
+        user: String? = "jbloggs",
+        store: FlakyStore? = nil,
+        latch: InMemorySuspectLatch = InMemorySuspectLatch()
+    ) throws {
+        self.store = store ?? FlakyStore(credential)
+        self.latch = latch
+        self.validator = validator
+        let store = self.store
         let queue = try TelemetryQueue(directory: FileManager.default.temporaryDirectory.appendingPathComponent("ntlmac-svc-\(UUID().uuidString)"))
         let telemetry = TelemetryExporter(
             recorder: TelemetryRecorder(resource: TelemetryResource(serviceVersion: "0.1.0", hostID: "h", osVersion: "26.0")),
@@ -97,6 +108,7 @@ private struct Harness {
         )
         service = AgentService(
             store: store,
+            latch: latch,
             telemetry: telemetry,
             users: FixedUserProvider(realm: "CORP.EXAMPLE", user: user),
             prompter: prompter,
@@ -108,6 +120,11 @@ private struct Harness {
     func started(_ config: NTLMacConfig? = config()) async -> Harness {
         await service.reload(config: config)
         return self
+    }
+
+    /// A fresh agent process (crash, logout) over the same Keychain and latch file.
+    func restarted() async throws -> Harness {
+        try await Harness(validator: validator, store: store, latch: latch).started()
     }
 
     func points(_ metric: String) async throws -> [([String: String], Int)] {
@@ -271,6 +288,66 @@ private struct Harness {
     @Test func replacementNeedsAValidConfig() async throws {
         let h = try Harness()
         await #expect(throws: CredentialReplacementError.configInvalid) { try await h.service.credentialReplaced(jbloggs) }
+    }
+
+    // MARK: The suspect latch survives restarts
+
+    @Test func aTrippedBreakerSurvivesARestart() async throws {
+        let h = try await Harness().started()
+        _ = await h.service.handle(request("n:1"))
+        _ = await h.service.handle(request("n:1"))
+        #expect(h.latch.isSet)
+
+        // The stale password is still in the Keychain: the new process must not try it.
+        let after = try await h.restarted()
+        #expect(await after.service.credentialState() == .suspect)
+        #expect(await after.service.handle(request("n:9")) == .decline(.suspectBlocked))
+    }
+
+    @Test func anExternalPasswordChangeSurvivesARestart() async throws {
+        let h = try await Harness().started()
+        await h.service.passwordChangedExternally()
+        let after = try await h.restarted()
+        #expect(await after.service.handle(request()) == .decline(.suspectBlocked))
+    }
+
+    @Test func thePersistedLatchWinsOverACredentialAppearing() async throws {
+        let h = try await Harness(credential: nil, latch: InMemorySuspectLatch(set: true)).started()
+        #expect(await h.service.credentialState() == .missing)
+        h.store.set(jbloggs)
+        #expect(await h.service.handle(request()) == .decline(.suspectBlocked))
+        #expect(await h.service.credentialState() == .suspect)
+    }
+
+    @Test func aRemovedCredentialKeepsTheLatch() async throws {
+        let h = try await Harness().started()
+        await h.service.passwordChangedExternally()
+        h.store.set(nil)
+        #expect(await h.service.credentialState() == .missing)
+        h.store.set(jbloggs)
+        #expect(await h.service.credentialState() == .suspect)
+        #expect(h.latch.isSet)
+    }
+
+    @Test func onlyAValidatedReplacementClearsTheLatch() async throws {
+        let h = try await Harness(validator: .rejected).started()
+        await h.service.passwordChangedExternally()
+        _ = try? await h.service.credentialReplaced(Credential(account: "jbloggs", password: "typo"))
+        await h.service.promptDismissed()
+        await h.service.reload(config: config())
+        #expect(h.latch.isSet)
+
+        let good = try await Harness(validator: .valid, store: h.store, latch: h.latch).started()
+        try await good.service.credentialReplaced(Credential(account: "jbloggs", password: "N3w-Passw0rd!"))
+        #expect(!h.latch.isSet)
+        let after = try await good.restarted()
+        #expect(await after.service.credentialState() == .ok)
+    }
+
+    @Test func aLatchThatCannotBeWrittenStillLatchesInMemory() async throws {
+        let h = try await Harness(latch: InMemorySuspectLatch(failWrites: true)).started()
+        await h.service.passwordChangedExternally()
+        #expect(await h.service.handle(request()) == .decline(.suspectBlocked))
     }
 
     // MARK: Config reload

@@ -17,6 +17,8 @@ public struct DebugOverrides: Sendable, Equatable {
     /// `account:password` file instead of the Keychain.
     public var credentialFile: String?
     public var telemetryDirectory: String?
+    /// Suspect-latch marker file, so test runs never touch the real one.
+    public var suspectLatchFile: String?
 
     public init() {}
 
@@ -32,6 +34,7 @@ public struct DebugOverrides: Sendable, Equatable {
         o.configFile = value("NTLMAC_CONFIG")
         o.credentialFile = value("NTLMAC_TEST_CREDENTIAL_FILE")
         o.telemetryDirectory = value("NTLMAC_TELEMETRY_DIR")
+        o.suspectLatchFile = value("NTLMAC_SUSPECT_LATCH_FILE")
         #endif
         return o
     }

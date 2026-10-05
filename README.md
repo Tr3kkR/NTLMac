@@ -78,7 +78,8 @@ docker run --rm -p 4318:4318 \
 - **HTTPS only**, except risk-accepted HTTP hosts listed with an expiry date.
 - **Lockout guard.** At most one credential per browser request. A second challenge for
   the same request latches the credential as `suspect` everywhere until a new password is
-  validated. Rate-limited per host.
+  validated. The latch survives agent restarts (a marker file next to the telemetry
+  queue). Rate-limited per host.
 - **Signed peers only.** The agent and the shim each require the other to be signed with
   their own team ID (read from their own signature) and the expected identifier. The
   shim sends nothing until the agent has passed that check. Unsigned builds refuse to

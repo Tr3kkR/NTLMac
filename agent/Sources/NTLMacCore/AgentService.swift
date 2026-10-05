@@ -27,6 +27,7 @@ public enum CredentialReplacementError: Error, Equatable {
 /// behind the injected protocols.
 public actor AgentService {
     private let store: CredentialStore
+    private let latch: SuspectLatch
     private let telemetry: TelemetryExporter
     private let users: SignedInUserProvider
     private let prompter: CredentialPrompter
@@ -41,9 +42,12 @@ public actor AgentService {
     private var lastAccount: String?
     /// A dialog is up (or queued); don't stack another until it is answered or dismissed.
     private var promptOutstanding = false
+    /// Mirrors `latch`, and keeps latching for this process even if the file can't be written.
+    private var suspectLatched: Bool
 
     public init(
         store: CredentialStore,
+        latch: SuspectLatch,
         telemetry: TelemetryExporter,
         users: SignedInUserProvider,
         prompter: CredentialPrompter,
@@ -51,6 +55,7 @@ public actor AgentService {
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.store = store
+        self.latch = latch
         self.telemetry = telemetry
         self.users = users
         self.prompter = prompter
@@ -58,9 +63,11 @@ public actor AgentService {
         self.now = now
         let stored = try? store.read()
         lastAccount = stored?.account
+        // A restart must not forget a latch set before it: the stale password is still stored.
+        suspectLatched = latch.isSet
         broker = AuthBroker(
             config: NTLMacConfig(enabled: false, killDate: .distantPast, realm: "", netbiosDomain: "", rules: []),
-            credentialState: stored?.account == nil ? .missing : .ok
+            credentialState: stored?.account == nil ? .missing : suspectLatched ? .suspect : .ok
         )
     }
 
@@ -94,6 +101,7 @@ public actor AgentService {
         if broker.breakerTrips > tripsBefore {
             let user = enduser
             await telemetry.record { $0.recordBreakerTrip(host: request.host, user: user) }
+            latchSuspect()
             await prompt(.retryRejected)
         } else if outcome == .credentialMissing, broker.credentialState == .missing {
             await prompt(.enrol)
@@ -107,6 +115,7 @@ public actor AgentService {
     /// password before it locks the account, and ask for the new one.
     public func passwordChangedExternally() async {
         broker.passwordChangedExternally()
+        latchSuspect()
         await prompt(.adPasswordChanged)
     }
 
@@ -121,6 +130,10 @@ public actor AgentService {
         }
         try store.write(credential)
         lastAccount = credential.account
+        // The only place the latch clears. If the file can't be removed, the next restart
+        // starts suspect and asks again: annoying, never a lockout.
+        try? latch.clear()
+        suspectLatched = false
         broker.credentialReplaced()
         promptOutstanding = false
     }
@@ -170,13 +183,21 @@ public actor AgentService {
             broker.credentialRemoved()
         case let .success(credential?):
             lastAccount = credential.account
-            // Only a credential appearing ends `missing`; `suspect` ends only through
-            // `credentialReplaced`, after validation.
-            if broker.credentialState == .missing { broker.credentialReplaced() }
+            // Only a credential appearing ends `missing`, and only to `ok` if nothing latched;
+            // `suspect` ends only through `credentialReplaced`, after validation.
+            if broker.credentialState == .missing {
+                if suspectLatched { broker.passwordChangedExternally() } else { broker.credentialReplaced() }
+            }
         default:
             break
         }
         return result
+    }
+
+    private func latchSuspect() {
+        suspectLatched = true
+        // A failed write still latches in memory; only the restart protection is lost.
+        try? latch.set()
     }
 
     private func prompt(_ reason: PromptReason) async {
