@@ -1,0 +1,15 @@
+#!/bin/sh
+# Start the agent for every user already logged in; everyone else gets it at their next
+# login from /Library/LaunchAgents. Installing at the login window starts nothing.
+# A failure here doesn't fail the install: the next login loads the agent anyway.
+[ "$3" = "/" ] || exit 0
+PLIST=/Library/LaunchAgents/com.example.ntlmac.agent.plist
+
+for uid in $(ps -axo uid=,comm= | awk '$2 ~ /\/loginwindow$/ && $1 != 0 { print $1 }' | sort -u); do
+  if launchctl bootstrap "gui/$uid" "$PLIST"; then
+    echo "NTLMac: started the agent for uid $uid"
+  else
+    echo "NTLMac: could not start the agent for uid $uid; it starts at the next login"
+  fi
+done
+exit 0

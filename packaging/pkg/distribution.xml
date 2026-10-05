@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- productbuild distribution for NTLMac. make-pkg.sh substitutes __VERSION__. -->
+<installer-gui-script minSpecVersion="2">
+  <title>NTLMac</title>
+  <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+  <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+  <volume-check>
+    <allowed-os-versions>
+      <os-version min="14.0"/>
+    </allowed-os-versions>
+  </volume-check>
+  <choices-outline>
+    <line choice="default">
+      <line choice="com.example.ntlmac.pkg"/>
+    </line>
+  </choices-outline>
+  <choice id="default"/>
+  <choice id="com.example.ntlmac.pkg" visible="false">
+    <pkg-ref id="com.example.ntlmac.pkg"/>
+  </choice>
+  <pkg-ref id="com.example.ntlmac.pkg" version="__VERSION__" onConclusion="none">NTLMac-component.pkg</pkg-ref>
+</installer-gui-script>

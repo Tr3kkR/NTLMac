@@ -24,11 +24,12 @@ contains no NTLM implementation.
 | `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the agent's parts: `AgentService` (composes them), `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue), `SuspectLatch` (persisted lockout latch), `KerberosCredentialValidator` (one AS exchange, via the small `CKerberos` C target), `CredentialPrompt` (the dialog's wording, input checks and inline errors) and the `SignedInUserProvider` boundary. `NTLMacAgent` is the per-user LaunchAgent and shows the enrolment / re-prompt dialog; `ntlmac-nmh` is the native host, a thin shim that forwards to the agent over XPC. Both ship inside `NTLMac.app` (`agent/scripts/make-app.sh`). |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
+| `test/packaging/` | `check-pkg.sh`: builds the installer package and checks its payload, owners, modes, manifests and scripts without installing it. |
 | `test/manual/` | `try-dialog.sh`: the real dialog through a throwaway launchd agent and the test KDC (puts windows on screen). |
 | `test/kdc/` | Throwaway MIT KDC (Docker) for checking the Kerberos password validation against a real KDC; also the manual procedure against AD. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
-| `packaging/` | `NTLMac.app` Info.plist, native-messaging manifest, LaunchAgent plist and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
+| `packaging/` | `NTLMac.app` Info.plist and agent entitlements, native-messaging manifest, LaunchAgent plist, the installer package (`pkg/`: scripts, uninstaller, signing and notarisation procedure) and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
 
 Identifiers (native host name, preference domain, Keychain service) use the placeholder
@@ -51,6 +52,10 @@ SIGN_IDENTITY="Developer ID Application: …" agent/scripts/make-app.sh release
 # The credential dialog for real: throwaway LaunchAgent + Docker KDC, test account only.
 # Shows the enrolment dialog, then the re-prompt after a rejected retry.
 test/manual/try-dialog.sh
+
+# Installer package (builds only, never installs) and its checks; see packaging/pkg/README.md
+EXTENSION_ID=<32 letters a-p> agent/scripts/make-pkg.sh
+test/packaging/check-pkg.sh
 
 # Release binaries contain none of the DEBUG-only test overrides
 agent/scripts/check-release-overrides.sh
