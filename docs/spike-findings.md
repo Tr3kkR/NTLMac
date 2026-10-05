@@ -130,7 +130,7 @@ The guide has no `AuthenticationSuccess` or `AuthenticationFailure` notification
 don't depend on one. Verify delivery with `notifyutil -w <name>` during a real password
 change.
 
-## (d) Native host → XPC → agent with Keychain ACL: **Proven locally** (ad-hoc builds), signed end to end **Open**
+## (d) Native host → XPC → agent with Keychain ACL: **Proven locally**, ad-hoc and team-signed (Developer ID **Open**)
 `NTLMacAgent` runs `AgentService` on a launchd Mach service; `ntlmac-nmh` forwards to
 it. Both browser suites pass through a real `launchctl bootstrap gui/$UID` agent, with
 each side pinned to the other's cdhash by DEBUG-only overrides (absent from release
@@ -155,9 +155,32 @@ under 0.3 s.
   (`WhenUnlockedThisDeviceOnly`, not synchronisable, optional access group). An ad-hoc
   signed process with no `keychain-access-groups` entitlement gets
   `errSecMissingEntitlement` (-34018) when writing. So the agent **must** ship
-  Developer-ID signed with that entitlement; check during packaging whether that needs a
-  provisioning profile. Still to show on a signed build: that an unentitled process
-  can't read the agent's existing item.
+  team-signed with that entitlement.
+- **No provisioning profile needed** (2026-10-05, macOS 26.5): a probe signed with an
+  Apple Development identity, the hardened runtime and `keychain-access-groups =
+  <TEAM>.<prefix>`, and no profile, launched and used the group. Unentitled and
+  wrong-group copies got -34018. Developer ID uses the same team-prefix check, but repeat
+  this on the first Developer ID build.
+
+### Signed end to end (`test/manual/signed-proof.sh`, 2026-10-05)
+Signed with an Apple Development identity (team-signed, hardened runtime, timestamp),
+a non-placeholder `NTLMAC_PREFIX`, test account only:
+
+| Check | Result |
+|---|---|
+| Release bundle on its real Mach service (`<prefix>.agent`): signed shim → agent | Answered (`config_invalid`: no profile, fails closed) |
+| Ad-hoc shim told to trust the agent's team requirement | Rejected: `agent_unavailable`, agent handler never ran |
+| Team-signed impostor with another identifier | Rejected the same way |
+| Signed debug bundle (team policy, real Keychain), enrol dialog, test KDC | One wrong password = one `PREAUTH_FAILED`, not stored; right one stored |
+| Next request | Supplied from the data-protection Keychain |
+| `security find-generic-password` | Can't see the item |
+| Ad-hoc / team-signed unentitled process, asking for the group | -34018 |
+| Same, without naming the group | -25300 (item invisible) |
+| Team-signed process **with** the entitlement | Can read it: the boundary is team + entitlement, by design |
+| `NTLMacAgent --remove-user-data` (what `uninstall.sh` runs per user) | Item deleted |
+
+Not yet shown: a Developer ID build (no certificate yet), Gatekeeper/notarisation, and
+`uninstall.sh`'s root path (`launchctl asuser` + `sudo -u`) on an installed package.
 
 ## (e) OTLP into the SIEM: **Partly proven**
 - The NTLMac OTLP/JSON payload is accepted by otelcol-contrib 0.161.0:
