@@ -8,7 +8,7 @@
 #
 # A. Release NTLMac.app, signed, as a throwaway LaunchAgent on the real Mach service
 #    (<prefix>.agent; nothing else may be serving it). No profile, so the agent
-#    fails closed (killswitch) but answers:
+#    fails closed (config_invalid) but answers:
 #    - the signed shim gets that answer over XPC;
 #    - an ad-hoc shim, and a team-signed impostor with another identifier, are rejected
 #      before the agent's handler runs (agent_unavailable, no request in the agent log).
@@ -117,7 +117,7 @@ mkdir -p "$RUN/a"
 agent_plist "$RUN/a/agent.plist" "$LABEL_A" "$RELEASE/NTLMacAgent" "$SERVICE" "$RUN/a/agent.log"
 launchctl bootstrap "$GUI" "$RUN/a/agent.plist"
 await_start "$RUN/a/agent.log"
-expect "signed shim -> agent round trip" "decline killswitch" "$(ask a:1 "$RELEASE/ntlmac-nmh")"
+expect "signed shim -> agent round trip" "decline config_invalid" "$(ask a:1 "$RELEASE/ntlmac-nmh")"
 expect "ad-hoc shim is rejected" "decline agent_unavailable" \
   "$(ask a:2 "$ADHOC_SHIM" NTLMAC_AGENT_REQUIREMENT="$AGENT_REQ")"
 expect "team-signed impostor is rejected" "decline agent_unavailable" "$(ask a:3 "$RUN/impostor")"
