@@ -23,13 +23,6 @@ struct LoggingPrompter: CredentialPrompter {
     }
 }
 
-/// Kerberos AS-REQ validation not built yet. Throwing means "couldn't validate", so a
-/// replacement is never stored unvalidated.
-struct PendingKerberosValidator: CredentialValidator {
-    struct NotImplemented: Error {}
-    func validate(_ credential: Credential, realm: String) async throws -> Bool { throw NotImplemented() }
-}
-
 func serialNumber() -> String {
     let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
     defer { IOObjectRelease(service) }
@@ -109,7 +102,7 @@ let service = AgentService(
     // `app-sso` parsing waits on spike item (b); until then enduser.id is the stored account.
     users: FixedUserProvider(realm: "", user: nil),
     prompter: LoggingPrompter(),
-    validator: PendingKerberosValidator()
+    validator: KerberosCredentialValidator()
 )
 
 let serviceName = overrides.machServiceName ?? AgentXPC.machServiceName

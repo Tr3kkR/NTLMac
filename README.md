@@ -24,6 +24,7 @@ contains no NTLM implementation.
 | `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the agent's parts: `AgentService` (composes them), `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue) and the `SignedInUserProvider` boundary. `NTLMacAgent` is the per-user LaunchAgent; `ntlmac-nmh` is the native host, a thin shim that forwards to the agent over XPC. |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
+| `test/kdc/` | Throwaway MIT KDC (Docker) for checking the Kerberos password validation against a real KDC; also the manual procedure against AD. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
 | `packaging/` | Native-messaging manifest, LaunchAgent plist and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
@@ -38,6 +39,8 @@ packaging.
 ```sh
 # Swift core (140 tests)
 cd agent && swift test
+
+# Optional: the Kerberos validator against a real KDC (Docker), see test/kdc/README.md
 
 # Release binaries contain none of the DEBUG-only test overrides
 agent/scripts/check-release-overrides.sh

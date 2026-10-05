@@ -10,7 +10,8 @@ let package = Package(
         .executable(name: "NTLMacAgent", targets: ["NTLMacAgent"]),
     ],
     targets: [
-        .target(name: "NTLMacCore"),
+        .target(name: "CKerberos", linkerSettings: [.linkedFramework("Kerberos")]),
+        .target(name: "NTLMacCore", dependencies: ["CKerberos"]),
         .executableTarget(name: "ntlmac-nmh", dependencies: ["NTLMacCore"]),
         .executableTarget(name: "NTLMacAgent", dependencies: ["NTLMacCore"]),
         .testTarget(name: "NTLMacCoreTests", dependencies: ["NTLMacCore"]),
