@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  NTLMac.app: the agent as an accessory app (no Dock icon or menu bar) so it can show the
+  credential dialog and, once Developer-ID signed, carry an embedded provisioning profile
+  for keychain-access-groups. Installed at /Library/Application Support/NTLMac/NTLMac.app;
+  Contents/MacOS holds NTLMacAgent (main executable, launched by the LaunchAgent) and
+  ntlmac-nmh (the native host, launched by the browser). Built by agent/scripts/make-app.sh.
+-->
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.example.ntlmac.agent</string>
+  <key>CFBundleName</key>
+  <string>NTLMac</string>
+  <key>CFBundleDisplayName</key>
+  <string>NTLMac</string>
+  <key>CFBundleExecutable</key>
+  <string>NTLMacAgent</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>__VERSION__</string>
+  <key>CFBundleVersion</key>
+  <string>__VERSION__</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>14.0</string>
+  <key>LSUIElement</key>
+  <true/>
+</dict>
+</plist>

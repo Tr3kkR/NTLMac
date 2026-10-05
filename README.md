@@ -21,13 +21,14 @@ contains no NTLM implementation.
 
 | Path | What |
 |---|---|
-| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the agent's parts: `AgentService` (composes them), `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue) and the `SignedInUserProvider` boundary. `NTLMacAgent` is the per-user LaunchAgent; `ntlmac-nmh` is the native host, a thin shim that forwards to the agent over XPC. |
+| `agent/` | Swift package. `NTLMacCore` holds the decision engine and data formats: `Allowlist`, `CircuitBreaker` (lockout guard), `AuthBroker`, `ConfigLoader`, native-messaging codec, OTLP `Telemetry`, plus the agent's parts: `AgentService` (composes them), `CredentialStore` (data-protection Keychain), `PasswordChangeListener` (Darwin notifications), `AgentXPC` (code-signing checks both ways), `TelemetryExporter` (on-disk queue), `SuspectLatch` (persisted lockout latch), `KerberosCredentialValidator` (one AS exchange, via the small `CKerberos` C target), `CredentialPrompt` (the dialog's wording, input checks and inline errors) and the `SignedInUserProvider` boundary. `NTLMacAgent` is the per-user LaunchAgent and shows the enrolment / re-prompt dialog; `ntlmac-nmh` is the native host, a thin shim that forwards to the agent over XPC. Both ship inside `NTLMac.app` (`agent/scripts/make-app.sh`). |
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
+| `test/manual/` | `try-dialog.sh`: the real dialog through a throwaway launchd agent and the test KDC (puts windows on screen). |
 | `test/kdc/` | Throwaway MIT KDC (Docker) for checking the Kerberos password validation against a real KDC; also the manual procedure against AD. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |
-| `packaging/` | Native-messaging manifest, LaunchAgent plist and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
+| `packaging/` | `NTLMac.app` Info.plist, native-messaging manifest, LaunchAgent plist and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
 
 Identifiers (native host name, preference domain, Keychain service) use the placeholder
@@ -37,10 +38,17 @@ packaging.
 ## Running the tests
 
 ```sh
-# Swift core (140 tests)
+# Swift core (170 tests)
 cd agent && swift test
 
 # Optional: the Kerberos validator against a real KDC (Docker), see test/kdc/README.md
+
+# NTLMac.app (agent + native host, ad-hoc signed): agent/.build/debug/NTLMac.app
+agent/scripts/make-app.sh debug
+
+# The credential dialog for real: throwaway LaunchAgent + Docker KDC, test account only.
+# Shows the enrolment dialog, then the re-prompt after a rejected retry.
+test/manual/try-dialog.sh
 
 # Release binaries contain none of the DEBUG-only test overrides
 agent/scripts/check-release-overrides.sh
@@ -83,6 +91,10 @@ docker run --rm -p 4318:4318 \
   the same request latches the credential as `suspect` everywhere until a new password is
   validated. The latch survives agent restarts (a marker file next to the telemetry
   queue). Rate-limited per host.
+- **One check per typed password.** The dialog validates a new password with exactly one
+  Kerberos AS exchange (no retry, no credential cache written) and stores it only if the
+  KDC accepts it. Password AutoFill is off in the dialog, so macOS never offers to save
+  the AD password in the user's synced Passwords.
 - **Signed peers only.** The agent and the shim each require the other to be signed with
   their own team ID (read from their own signature) and the expected identifier. The
   shim sends nothing until the agent has passed that check. Unsigned builds refuse to

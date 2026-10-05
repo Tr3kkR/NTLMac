@@ -52,9 +52,10 @@ private final class FlakyStore: CredentialStore, @unchecked Sendable {
 
 private final class RecordingPrompter: CredentialPrompter, @unchecked Sendable {
     private let lock = NSLock()
-    private var reasons: [PromptReason] = []
-    func requestCredential(reason: PromptReason) { lock.withLock { reasons.append(reason) } }
-    var all: [PromptReason] { lock.withLock { reasons } }
+    private var requests: [(reason: PromptReason, account: String?)] = []
+    func requestCredential(reason: PromptReason, account: String?) { lock.withLock { requests.append((reason, account)) } }
+    var all: [PromptReason] { lock.withLock { requests.map(\.reason) } }
+    var accounts: [String?] { lock.withLock { requests.map(\.account) } }
 }
 
 private struct ScriptedValidator: CredentialValidator {
@@ -232,6 +233,22 @@ private struct Harness {
         let prompts = try await h.points("ntlmac.credential.prompts")
         #expect(prompts.map(\.0) == [["reason": "ad_password_changed", "enduser.id": "jbloggs"]])
         #expect(prompts.map(\.1) == [1])
+    }
+
+    @Test func promptsPrefillTheSignedInUser() async throws {
+        let h = try await Harness(credential: Credential(account: "old-name", password: "x"), user: "jbloggs").started()
+        await h.service.passwordChangedExternally()
+        #expect(h.prompter.accounts == ["jbloggs"])
+    }
+
+    @Test func promptsFallBackToTheStoredAccountThenBlank() async throws {
+        let stored = try await Harness(user: nil).started()
+        await stored.service.passwordChangedExternally()
+        #expect(stored.prompter.accounts == ["jbloggs"])
+
+        let blank = try await Harness(credential: nil, user: nil).started()
+        _ = await blank.service.handle(request())
+        #expect(blank.prompter.accounts == [nil])
     }
 
     @Test func dismissedPromptCanBeShownAgain() async throws {

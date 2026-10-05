@@ -182,6 +182,8 @@ export async function startAgent(run: string, configJSON: object, credentialLine
         NTLMAC_TEST_CREDENTIAL_FILE: credential,
         NTLMAC_TELEMETRY_DIR: join(run, "telemetry"),
         NTLMAC_SUSPECT_LATCH_FILE: join(run, "credential-suspect"),
+        // The stale-password scenario trips the breaker: never put the real dialog on screen.
+        NTLMAC_NO_DIALOG: "1",
       },
     }),
   );

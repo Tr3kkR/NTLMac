@@ -19,6 +19,8 @@ public struct DebugOverrides: Sendable, Equatable {
     public var telemetryDirectory: String?
     /// Suspect-latch marker file, so test runs never touch the real one.
     public var suspectLatchFile: String?
+    /// Log prompt requests instead of showing the dialog, so test runs put no window on screen.
+    public var noDialog = false
 
     public init() {}
 
@@ -35,6 +37,7 @@ public struct DebugOverrides: Sendable, Equatable {
         o.credentialFile = value("NTLMAC_TEST_CREDENTIAL_FILE")
         o.telemetryDirectory = value("NTLMAC_TELEMETRY_DIR")
         o.suspectLatchFile = value("NTLMAC_SUSPECT_LATCH_FILE")
+        o.noDialog = value("NTLMAC_NO_DIALOG") == "1"
         #endif
         return o
     }

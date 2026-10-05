@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import IOKit
 import NTLMacCore
@@ -16,10 +17,10 @@ func log(_ message: String) {
     FileHandle.standardError.write(Data("NTLMacAgent: \(message)\n".utf8))
 }
 
-/// Dialog not built yet: log what would be asked.
+/// For test runs (`NTLMAC_NO_DIALOG=1`): log what would be asked, show nothing.
 struct LoggingPrompter: CredentialPrompter {
-    func requestCredential(reason: PromptReason) {
-        log("credential prompt requested: \(reason.rawValue) (dialog not implemented yet)")
+    func requestCredential(reason: PromptReason, account: String?) {
+        log("credential prompt requested: \(reason.rawValue) (dialog suppressed)")
     }
 }
 
@@ -95,15 +96,17 @@ do {
     exit(EX_CANTCREAT)
 }
 
+let dialog = CredentialDialog(log: log)
 let service = AgentService(
     store: store,
     latch: FileSuspectLatch(url: overrides.suspectLatchFile.map { URL(fileURLWithPath: $0) } ?? FileSuspectLatch.defaultURL()),
     telemetry: telemetry,
     // `app-sso` parsing waits on spike item (b); until then enduser.id is the stored account.
     users: FixedUserProvider(realm: "", user: nil),
-    prompter: LoggingPrompter(),
+    prompter: overrides.noDialog ? LoggingPrompter() as CredentialPrompter : DialogPrompter(dialog: dialog),
     validator: KerberosCredentialValidator()
 )
+dialog.service = service
 
 let serviceName = overrides.machServiceName ?? AgentXPC.machServiceName
 let server = AgentXPCServer(listener: NSXPCListener(machServiceName: serviceName), clientRequirement: clientRequirement) { request in
@@ -164,4 +167,7 @@ Task {
     }
 }
 
-dispatchMain()
+// An accessory app (LSUIElement in the bundle): no Dock icon or menu bar, but it can show
+// the credential dialog. The main queue (XPC, signals) runs on this run loop.
+NSApplication.shared.setActivationPolicy(.accessory)
+NSApplication.shared.run()

@@ -1,9 +1,12 @@
 import Foundation
 
-/// Shows the enrolment / re-prompt dialog. Must return at once: the dialog later calls
+/// Shows the enrolment / re-prompt dialog, with `account` prefilled (the signed-in user,
+/// else the stored account, else blank). Must return at once: the dialog later calls
 /// `AgentService.credentialReplaced(_:)` with what the user typed, or `promptDismissed()`.
+/// A request while the dialog is already up (`validationFailed` after a rejected
+/// submission) updates that dialog instead of opening another.
 public protocol CredentialPrompter: Sendable {
-    func requestCredential(reason: PromptReason)
+    func requestCredential(reason: PromptReason, account: String?)
 }
 
 /// Checks a password before it is stored, with one Kerberos AS-REQ to the realm's KDC, so a
@@ -203,8 +206,8 @@ public actor AgentService {
     private func prompt(_ reason: PromptReason) async {
         guard !promptOutstanding else { return }
         promptOutstanding = true
-        prompter.requestCredential(reason: reason)
         let user = enduser
+        prompter.requestCredential(reason: reason, account: user)
         await telemetry.record { $0.recordPrompt(reason: reason, user: user) }
     }
 

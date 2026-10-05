@@ -17,7 +17,7 @@
   <string>com.example.ntlmac.agent</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Library/Application Support/NTLMac/NTLMacAgent</string>
+    <string>/Library/Application Support/NTLMac/NTLMac.app/Contents/MacOS/NTLMacAgent</string>
   </array>
   <key>MachServices</key>
   <dict>
