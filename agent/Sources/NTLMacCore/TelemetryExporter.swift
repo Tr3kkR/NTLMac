@@ -18,7 +18,7 @@ public struct TelemetryQueue: Sendable {
 
     /// `~/Library/Application Support/com.example.ntlmac/telemetry`
     public static func defaultDirectory(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
-        home.appendingPathComponent("Library/Application Support/com.example.ntlmac/telemetry", isDirectory: true)
+        UserData.defaultDirectory(home: home).appendingPathComponent("telemetry", isDirectory: true)
     }
 
     public let directory: URL

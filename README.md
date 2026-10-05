@@ -45,6 +45,8 @@ cd agent && swift test
 
 # NTLMac.app (agent + native host, ad-hoc signed): agent/.build/debug/NTLMac.app
 agent/scripts/make-app.sh debug
+# Signed (hardened runtime, timestamp, keychain-access-groups for the agent; universal):
+SIGN_IDENTITY="Developer ID Application: …" agent/scripts/make-app.sh release
 
 # The credential dialog for real: throwaway LaunchAgent + Docker KDC, test account only.
 # Shows the enrolment dialog, then the re-prompt after a rejected retry.

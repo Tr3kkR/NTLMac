@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements for NTLMacAgent only (the shim gets none). make-app.sh replaces __TEAM_ID__
+  with the signing identity's team ID; it must match CodeSigningPolicy.keychainAccessGroup.
+  A team-prefixed group needs no provisioning profile on macOS (checked 2026-10-05 with a
+  development certificate and the hardened runtime: an unentitled binary gets -34018).
+-->
+<plist version="1.0">
+<dict>
+  <key>keychain-access-groups</key>
+  <array>
+    <string>__TEAM_ID__.com.example.ntlmac</string>
+  </array>
+</dict>
+</plist>

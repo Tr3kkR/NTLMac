@@ -12,16 +12,21 @@ BINARIES="ntlmac-nmh NTLMacAgent"
 
 swift build -c debug >/dev/null
 swift build -c release >/dev/null
+# What make-app.sh ships: universal release binaries (a separate build).
+universal="swift build -c release --arch arm64 --arch x86_64"
+$universal >/dev/null
+universal_bin=$($universal --show-bin-path)
 
 fail=0
 for bin in $BINARIES; do
-  for config in debug release; do
+  for config in debug release universal; do
     path=".build/$config/$bin"
+    [ "$config" = universal ] && path="$universal_bin/$bin"
     contents=$(strings -a "$path"; nm -a "$path" 2>/dev/null | swift demangle --compact)
     for marker in $MARKERS; do
       if printf '%s\n' "$contents" | grep -q "$marker"; then found=yes; else found=no; fi
-      if [ "$config" = release ] && [ "$found" = yes ]; then
-        echo "FAIL: $marker is in the release $bin"; fail=1
+      if [ "$config" != debug ] && [ "$found" = yes ]; then
+        echo "FAIL: $marker is in the $config $bin"; fail=1
       elif [ "$config" = debug ] && [ "$found" = no ]; then
         echo "FAIL (control): $marker not found in the debug $bin, so this check proves nothing"; fail=1
       fi

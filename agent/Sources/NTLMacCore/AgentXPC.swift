@@ -52,6 +52,11 @@ public struct CodeSigningPolicy: Sendable, Equatable {
         try CodeSigning.currentTeamID().map { try CodeSigningPolicy(teamID: $0) }
     }
 
+    /// The agent's Keychain access group (`keychain-access-groups` in
+    /// packaging/app/NTLMacAgent.entitlements). Team-prefixed, so macOS honours it with no
+    /// provisioning profile, and no other team's code can claim it.
+    public var keychainAccessGroup: String { "\(teamID).com.example.ntlmac" }
+
     /// What the shim requires of the agent.
     public var agentRequirement: String { requirement(identifier: agentIdentifier) }
     /// What the agent requires of the shim.

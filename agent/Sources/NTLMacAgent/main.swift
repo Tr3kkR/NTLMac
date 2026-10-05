@@ -48,11 +48,43 @@ func loadConfig() -> NTLMacConfig? {
     }
 }
 
+let policy: CodeSigningPolicy?
+do {
+    policy = try CodeSigningPolicy.forCurrentProcess()
+} catch {
+    log("cannot read this process's signature: \(error)")
+    exit(EX_CONFIG)
+}
+
+let store: CredentialStore = {
+    #if DEBUG
+    if let path = overrides.credentialFile { return FileCredentialStore(url: URL(fileURLWithPath: path)) }
+    #endif
+    return KeychainCredentialStore(accessGroup: policy?.keychainAccessGroup)
+}()
+let latchURL = overrides.suspectLatchFile.map { URL(fileURLWithPath: $0) } ?? FileSuspectLatch.defaultURL()
+let telemetryDirectory = overrides.telemetryDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) } ?? TelemetryQueue.defaultDirectory()
+
+// The uninstaller runs `NTLMacAgent --remove-user-data` as each user (with the agent
+// stopped): only this entitled binary can delete the Keychain item.
+if CommandLine.arguments.dropFirst().first == "--remove-user-data" {
+    let paths = overrides.suspectLatchFile == nil && overrides.telemetryDirectory == nil
+        ? [UserData.defaultDirectory()] : [latchURL, telemetryDirectory]
+    do {
+        try UserData.remove(store: store, paths: paths)
+        log("user data removed")
+        exit(0)
+    } catch {
+        log("cannot remove all user data: \(error)")
+        exit(EX_IOERR)
+    }
+}
+
 // The agent accepts only the shim from its own signed package: same team ID (see
 // CodeSigningPolicy.forCurrentProcess). An unsigned release build has nobody to trust.
 let clientRequirement: String
 do {
-    guard let requirement = try overrides.shimRequirement ?? CodeSigningPolicy.forCurrentProcess()?.shimRequirement else {
+    guard let requirement = overrides.shimRequirement ?? policy?.shimRequirement else {
         log("not signed with a team ID and no override; refusing to start")
         exit(EX_CONFIG)
     }
@@ -62,13 +94,6 @@ do {
     log("cannot build the shim requirement: \(error)")
     exit(EX_CONFIG)
 }
-
-let store: CredentialStore = {
-    #if DEBUG
-    if let path = overrides.credentialFile { return FileCredentialStore(url: URL(fileURLWithPath: path)) }
-    #endif
-    return KeychainCredentialStore()
-}()
 
 var config = loadConfig()
 let transport = SwitchableTransport()
@@ -87,7 +112,7 @@ do {
         recorder: TelemetryRecorder(resource: TelemetryResource(
             serviceVersion: version, hostID: hostID, osVersion: "\(osVersion.majorVersion).\(osVersion.minorVersion)"
         )),
-        queue: try TelemetryQueue(directory: overrides.telemetryDirectory.map { URL(fileURLWithPath: $0) } ?? TelemetryQueue.defaultDirectory()),
+        queue: try TelemetryQueue(directory: telemetryDirectory),
         transport: transport,
         start: Date()
     )
@@ -99,7 +124,7 @@ do {
 let dialog = CredentialDialog(log: log)
 let service = AgentService(
     store: store,
-    latch: FileSuspectLatch(url: overrides.suspectLatchFile.map { URL(fileURLWithPath: $0) } ?? FileSuspectLatch.defaultURL()),
+    latch: FileSuspectLatch(url: latchURL),
     telemetry: telemetry,
     // `app-sso` parsing waits on spike item (b); until then enduser.id is the stored account.
     users: FixedUserProvider(realm: "", user: nil),

@@ -62,6 +62,23 @@ private func tempURL(_ name: String) -> URL {
         #expect(manifest["path"] as? String == "\(app)/Contents/MacOS/ntlmac-nmh")
     }
 
+    @Test func theKeychainAccessGroupIsTeamPrefixed() throws {
+        // macOS honours a team-prefixed keychain-access-groups entry without a
+        // provisioning profile (checked with a signed probe, 2026-10-05).
+        #expect(try CodeSigningPolicy(teamID: "ABCDE12345").keychainAccessGroup == "ABCDE12345.com.example.ntlmac")
+    }
+
+    @Test func theAgentEntitlementsGrantThePolicysAccessGroup() throws {
+        let template = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("packaging/app/NTLMacAgent.entitlements")
+        // make-app.sh substitutes the signing identity's team ID.
+        let text = try String(contentsOf: template, encoding: .utf8).replacingOccurrences(of: "__TEAM_ID__", with: "ABCDE12345")
+        let plist = try #require(try PropertyListSerialization.propertyList(from: Data(text.utf8), format: nil) as? [String: Any])
+        #expect(plist["keychain-access-groups"] as? [String] == [try CodeSigningPolicy(teamID: "ABCDE12345").keychainAccessGroup])
+        #expect(plist.count == 1, "nothing else: least privilege")
+    }
+
     @Test func anAdHocSignedProcessHasNoTeamSoNoPolicy() throws {
         #expect(try CodeSigning.currentTeamID() == nil)
         #expect(try CodeSigningPolicy.forCurrentProcess() == nil)

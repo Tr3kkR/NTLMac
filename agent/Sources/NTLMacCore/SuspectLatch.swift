@@ -45,7 +45,7 @@ public final class InMemorySuspectLatch: SuspectLatch, @unchecked Sendable {
 public struct FileSuspectLatch: SuspectLatch {
     /// `~/Library/Application Support/com.example.ntlmac/credential-suspect`
     public static func defaultURL(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
-        home.appendingPathComponent("Library/Application Support/com.example.ntlmac/credential-suspect")
+        UserData.defaultDirectory(home: home).appendingPathComponent("credential-suspect")
     }
 
     public let url: URL
