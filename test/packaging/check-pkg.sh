@@ -94,6 +94,7 @@ assert m['name'] == '$PREFIX'" "$P/Library/$dir/NativeMessagingHosts/$PREFIX.jso
   done
   check "scripts only act on the boot volume" sh -c "grep -q '\"\$3\" = \"/\"' '$COMPONENT/Scripts/preinstall' && grep -q '\"\$3\" = \"/\"' '$COMPONENT/Scripts/postinstall'"
   check "uninstaller removes user data through the agent" grep -q -- '--remove-user-data' "$P/$SUPPORT/uninstall.sh"
+  check "uninstaller only rmdirs browser folders (never rm -r)" sh -c "grep -q 'rmdir \"\$dir\"' '$P/$SUPPORT/uninstall.sh' && ! grep -Eq 'rm -[a-z]*r[a-z]* .*/Library/(Google|Microsoft)' '$P/$SUPPORT/uninstall.sh'"
   check "uninstaller refuses to run unprivileged" sh -c "! '$P/$SUPPORT/uninstall.sh'"
 
   # Next to the package (not in it): the Jamf preference profile, named for its domain.

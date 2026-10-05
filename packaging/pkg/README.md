@@ -25,8 +25,11 @@ shellcheck) and usage errors. It extracts with `pkgutil --expand-full`. `pkgbuil
 the `com.apple.provenance` attribute as `._*` entries in the Bom (`COPYFILE_DISABLE` doesn't
 stop it), but PackageKit merges them back into attributes, so no `._` files land on disk.
 
-**Never install the package on a development Mac without agreeing it first.** It
-changes `/Library` and starts a LaunchAgent in every logged-in session.
+**Never install the package on a Mac without agreeing it first.** It changes `/Library`
+and starts a LaunchAgent in every logged-in session. `test/manual/check-install.sh
+installed|seed|removed` checks the state around a real install (sudo steps by hand). It
+was verified on a development Mac on 2026-10-05: install, upgrade and uninstall,
+including the Keychain item.
 
 ## Uninstall
 
@@ -40,7 +43,8 @@ policy. For each logged-in user it:
 Only the agent can do step 2: a data-protection Keychain item can be deleted only by a
 binary with its `keychain-access-groups` entitlement, in the user's session, so root
 can't do it. The script then deletes every user's NTLMac folder, the LaunchAgent, both
-manifests and the app, and forgets the package receipt.
+manifests and the app, and forgets the package receipt. Browser folders the package
+created (for example Edge's, on a Mac without Edge) are removed only if empty.
 
 **Residual:** a user who isn't logged in during the uninstall keeps their Keychain item.
 Nothing else can read it, because it needs the agent's team signature and entitlement. It

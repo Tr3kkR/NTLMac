@@ -25,7 +25,7 @@ contains no NTLM implementation.
 | `extension/` | MV3 extension (TypeScript). `src/logic.ts` is pure and unit-tested; `src/background.ts` wires `onAuthRequired` to the native host. |
 | `test/ntlm-server/` | NTLM-only HTTPS test server (pyspnego). Optional EPA enforcement, `/stats` failure counts in place of DC 4625 events. |
 | `test/packaging/` | `check-pkg.sh`: builds the installer package and checks its payload, owners, modes, manifests and scripts without installing it. |
-| `test/manual/` | `try-dialog.sh`: the real dialog through a throwaway launchd agent and the test KDC (puts windows on screen). |
+| `test/manual/` | `try-dialog.sh`: the real dialog through a throwaway launchd agent and the test KDC (puts windows on screen). `signed-proof.sh`: signed round trip, client rejection and Keychain isolation with a real team identity. `check-install.sh`: state checks around a real package install. |
 | `test/kdc/` | Throwaway MIT KDC (Docker) for checking the Kerberos password validation against a real KDC; also the manual procedure against AD. |
 | `test/e2e/` | Browser tests: real Chromium, no DevTools, real NTLM handshakes. `spike.test.ts` is the reference; `scenarios.test.ts` covers worker idle termination, agent unavailable, kill switch, plain HTTP and Basic. |
 | `gateway/` | OpenTelemetry Collector configs (production → Splunk HEC; local → debug). |

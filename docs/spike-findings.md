@@ -179,8 +179,20 @@ Signed with an Apple Development identity (team-signed, hardened runtime, timest
 | Team-signed process **with** the entitlement | Can read it: the boundary is team + entitlement, by design |
 | `NTLMacAgent --remove-user-data` (what `uninstall.sh` runs per user) | Item deleted |
 
-Not yet shown: a Developer ID build (no certificate yet), Gatekeeper/notarisation, and
-`uninstall.sh`'s root path (`launchctl asuser` + `sudo -u`) on an installed package.
+### Real install on a development Mac (`test/manual/check-install.sh`, 2026-10-05)
+The package was signed with the same identity, using the default prefix `com.devnull.ntlmac`,
+and installed with `sudo installer`:
+
+| Step | Result |
+|---|---|
+| Install | Every file root:wheel, LaunchAgent 644, receipt present, postinstall started the agent; installed shim → agent answers (`config_invalid`, no profile); no `._` files on disk |
+| Test item seeded into the agent's group, agent restarted | The release agent reads it (`credential=ok`) |
+| Upgrade (same package again) | preinstall stopped the agent, postinstall started a new one (new PID); credential kept |
+| `sudo uninstall.sh` | Everything gone, **including the Keychain item** (via `launchctl asuser` + `sudo -u` + `--remove-user-data`) and the receipt |
+| Second cycle, after a fix | The uninstaller now also `rmdir`s browser folders the package created (Edge wasn't installed); Chrome's folder, which holds another vendor's host, stays |
+
+Not yet shown: a Developer ID build (no certificate yet), Gatekeeper and notarisation, and
+an install through Jamf.
 
 ## (e) OTLP into the SIEM: **Partly proven**
 - The NTLMac OTLP/JSON payload is accepted by otelcol-contrib 0.161.0:

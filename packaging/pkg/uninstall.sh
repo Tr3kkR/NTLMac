@@ -34,6 +34,12 @@ done
 rm -f "/Library/LaunchAgents/$LABEL.plist" \
   /Library/Google/Chrome/NativeMessagingHosts/com.devnull.ntlmac.json \
   /Library/Microsoft/Edge/NativeMessagingHosts/com.devnull.ntlmac.json
+# The package creates these for a browser that may not be installed. rmdir only removes
+# an empty folder, so anything another app still uses stays.
+for dir in /Library/Google/Chrome/NativeMessagingHosts /Library/Google/Chrome /Library/Google \
+  /Library/Microsoft/Edge/NativeMessagingHosts /Library/Microsoft/Edge /Library/Microsoft; do
+  rmdir "$dir" 2>/dev/null || true
+done
 rm -rf "$SUPPORT"
 pkgutil --forget com.devnull.ntlmac.pkg >/dev/null 2>&1 || true
 echo "uninstall.sh: NTLMac removed"
