@@ -11,3 +11,7 @@ __pycache__/
 # Session handoff material (local only)
 HANDOVER.md
 NEXT_AGENT_PROMPT.md
+
+# Apple distribution analysis (local only; published as a private artifact)
+docs/apple-distribution.md
+docs/apple-distribution.html

@@ -15,6 +15,8 @@
 #   agent/scripts/make-pkg.sh   -> agent/.build/pkg/NTLMac-<version>.pkg
 #                                  agent/.build/pkg/profiles/<prefix>.plist (Jamf prefs, upload
 #                                  under preference domain <prefix>; fill in its placeholders)
+#                                  agent/.build/pkg/profiles/com.apple.servicemanagement.<prefix>.plist
+#                                  (managed login items; deploy before the package)
 #
 # Builds only; never installs. Check the result with test/packaging/check-pkg.sh.
 set -eu
@@ -31,12 +33,14 @@ version=$(sed -n 's/^let version = "\(.*\)"$/\1/p' Sources/NTLMacAgent/main.swif
 
 scripts/make-app.sh release >/dev/null # also validates NTLMAC_PREFIX
 app=.build/release/NTLMac.app
+team=$(codesign -dv "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+[ "$team" = "not set" ] && team=__TEAM_ID__ # ad hoc: leave the placeholder
 out=.build/pkg
 root="$out/root"
 support="$root/Library/Application Support/NTLMac"
 # Every template names the default prefix; this is the one place it is replaced.
 stage() { # template, destination, mode
-  sed -e "s/com\.devnull\.ntlmac/$prefix/g" -e "s/__EXTENSION_ID__/$ext/g" "$1" > "$2"
+  sed -e "s/com\.devnull\.ntlmac/$prefix/g" -e "s/__EXTENSION_ID__/$ext/g" -e "s/__TEAM_ID__/$team/g" "$1" > "$2"
   chmod "$3" "$2"
 }
 rm -rf "$out"
@@ -51,6 +55,8 @@ for browser in Google/Chrome Microsoft/Edge; do
 done
 mkdir "$out/scripts" "$out/profiles"
 stage ../packaging/profiles/com.devnull.ntlmac.plist "$out/profiles/$prefix.plist" 644
+stage ../packaging/profiles/com.apple.servicemanagement.com.devnull.ntlmac.plist \
+  "$out/profiles/com.apple.servicemanagement.$prefix.plist" 644
 for script in preinstall postinstall; do
   stage "../packaging/pkg/scripts/$script" "$out/scripts/$script" 755
 done

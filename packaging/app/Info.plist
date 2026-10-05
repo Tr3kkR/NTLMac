@@ -2,8 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   NTLMac.app: the agent as an accessory app (no Dock icon or menu bar) so it can show the
-  credential dialog and, once Developer-ID signed, carry an embedded provisioning profile
-  for keychain-access-groups. Installed at /Library/Application Support/NTLMac/NTLMac.app;
+  credential dialog and carry the embedded provisioning profile that authorises
+  keychain-access-groups (make-app.sh PROVISIONING_PROFILE). Installed at /Library/Application Support/NTLMac/NTLMac.app;
   Contents/MacOS holds NTLMacAgent (main executable, launched by the LaunchAgent) and
   ntlmac-nmh (the native host, launched by the browser). Built by agent/scripts/make-app.sh.
 -->
@@ -29,5 +29,9 @@
   <string>14.0</string>
   <key>LSUIElement</key>
   <true/>
+  <!-- Shown by Local Network privacy (macOS 15+) if a domain controller is on the user's
+       own subnet when the agent checks a new password. MDM can't pre-approve it (TN3179). -->
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>NTLMac checks a new password with your organisation's domain controllers before using it.</string>
 </dict>
 </plist>

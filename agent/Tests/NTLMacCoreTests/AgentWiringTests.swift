@@ -63,8 +63,7 @@ private func tempURL(_ name: String) -> URL {
     }
 
     @Test func theKeychainAccessGroupIsTeamPrefixed() throws {
-        // macOS honours a team-prefixed keychain-access-groups entry without a
-        // provisioning profile (checked with a signed probe, 2026-10-05).
+        // Team-prefixed, so a provisioning profile for the team can authorise it.
         #expect(try CodeSigningPolicy(teamID: "ABCDE12345").keychainAccessGroup == "ABCDE12345.com.devnull.ntlmac")
     }
 

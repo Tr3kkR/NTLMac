@@ -57,25 +57,29 @@ breaker re-prompts.
 secure timestamp. It gives the agent `keychain-access-groups = <TEAM>.com.devnull.ntlmac`
 (`packaging/app/NTLMacAgent.entitlements`), with the team read from the signature.
 
-**No provisioning profile is needed** for a team-prefixed access group. This was checked
-on macOS 26.5 with an Apple Development certificate:
-- a probe signed with the hardened runtime and that entitlement, and no profile, launched
-  and could use the group;
-- an unentitled copy, and a copy asking for another group, got `errSecMissingEntitlement`
-  (-34018).
+**Embed a provisioning profile.** `keychain-access-groups` is a restricted entitlement:
+Apple documents it as needing a provisioning profile (TN3125, TN3137). It worked without
+one in our tests (Apple Development certificate, macOS 26.5), but don't ship on undocumented
+behaviour. `PROVISIONING_PROFILE=<file>` makes `make-app.sh`:
+- check the profile is for the signing team, covers the App ID `<TEAM>.<prefix>.agent` and
+  authorises the Keychain group (otherwise exit 65);
+- embed it as `Contents/embedded.provisionprofile`;
+- add the `application-identifier` and `team-identifier` entitlements.
 
-Developer ID uses the same team-prefix check, but **repeat the check on the first
-Developer ID build** (step 5).
+`test/packaging/check-profile.sh` covers this with forged profiles.
 
 1. The team's Account Holder creates a **Developer ID Application** and a **Developer ID
    Installer** certificate (Xcode › Settings › Accounts › Manage Certificates, or the
-   developer portal). Install both, with their private keys, on the build Mac.
+   developer portal). Install both, with their private keys, on the build Mac. Then
+   register the explicit App ID `com.devnull.ntlmac.agent` and create a **Developer ID**
+   provisioning profile for it (Profiles › + › Developer ID).
 2. Store notarisation credentials once, for example
    `xcrun notarytool store-credentials NTLMAC_NOTARY --apple-id <id> --team-id <TEAM>`
    with an app-specific password, or `--key/--key-id/--issuer` for an App Store Connect API key.
 3. Build, sign, notarise and staple:
    ```sh
    SIGN_IDENTITY="Developer ID Application: <Org> (<TEAM>)" \
+   PROVISIONING_PROFILE=<NTLMac_Developer_ID.provisionprofile> \
    INSTALLER_IDENTITY="Developer ID Installer: <Org> (<TEAM>)" \
    NOTARY_PROFILE=NTLMAC_NOTARY EXTENSION_ID=<32 letters a-p> \
    agent/scripts/make-pkg.sh
@@ -84,9 +88,11 @@ Developer ID build** (step 5).
    - `pkgutil --check-signature <pkg>` shows the Developer ID Installer chain;
    - `xcrun stapler validate <pkg>` passes;
    - `spctl -a -vv -t install <pkg>` reports `source=Notarized Developer ID`.
-5. On a test Mac: install, enrol with a test account, and check the agent's log (`log show
-   --predicate 'subsystem == "com.devnull.ntlmac"'`) for -34018. Then run `uninstall.sh`
-   and confirm the item is gone.
+5. On a test Mac: deploy the managed login items profile
+   (`profiles/com.apple.servicemanagement.<prefix>.plist`), then install, then run
+   `test/manual/signed-proof.sh` and `test/manual/check-install.sh` with the Developer ID
+   identity. Check the agent's log (`log show --predicate 'subsystem == "com.devnull.ntlmac"'`)
+   for -34018. Finally run `uninstall.sh`.
 
 ## Prefix
 

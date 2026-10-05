@@ -156,11 +156,16 @@ under 0.3 s.
   signed process with no `keychain-access-groups` entitlement gets
   `errSecMissingEntitlement` (-34018) when writing. So the agent **must** ship
   team-signed with that entitlement.
-- **No provisioning profile needed** (2026-10-05, macOS 26.5): a probe signed with an
-  Apple Development identity, the hardened runtime and `keychain-access-groups =
-  <TEAM>.<prefix>`, and no profile, launched and used the group. Unentitled and
-  wrong-group copies got -34018. Developer ID uses the same team-prefix check, but repeat
-  this on the first Developer ID build.
+- **Provisioning profile: works without, but Apple says it's required.** On macOS 26.5,
+  a probe signed with an Apple Development identity, the hardened runtime and
+  `keychain-access-groups = <TEAM>.<prefix>`, and no profile, launched and used the group.
+  Unentitled and wrong-group copies got -34018. The signed proof and the installed agent
+  below also ran without a profile. But Apple documents `keychain-access-groups` as a
+  restricted entitlement that "must be authorized by a provisioning profile" (TN3125;
+  TN3137 says the same for the data-protection keychain). So that's undocumented
+  behaviour that a Developer ID build or a later macOS may not allow. **Ship with an
+  embedded Developer ID profile** (`make-app.sh PROVISIONING_PROFILE`, see
+  `packaging/pkg/README.md`).
 
 ### Signed end to end (`test/manual/signed-proof.sh`, 2026-10-05)
 Signed with an Apple Development identity (team-signed, hardened runtime, timestamp),

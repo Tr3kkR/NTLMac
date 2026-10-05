@@ -44,8 +44,8 @@ public struct NTLMacIdentity: Sendable, Equatable {
     public var credentialService: String { "\(prefix).credential" }
     public var preferenceDomain: String { prefix }
 
-    /// Team-prefixed, so macOS honours it with no provisioning profile (checked with a
-    /// signed probe, 2026-10-05) and no other team's code can claim it.
+    /// Team-prefixed, so no other team's code can claim it. A restricted entitlement:
+    /// ship it authorised by an embedded provisioning profile (TN3125; make-app.sh).
     public func keychainAccessGroup(teamID: String) -> String { "\(teamID).\(prefix)" }
 
     /// `~/Library/Application Support/<prefix>`: suspect latch and telemetry queue.

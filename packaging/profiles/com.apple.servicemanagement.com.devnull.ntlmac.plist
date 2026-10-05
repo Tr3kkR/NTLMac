@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Managed Login Items payload (com.apple.servicemanagement, macOS 13+, device channel,
+  user-approved MDM). Deploy it BEFORE the package: the NTLMac agent is then auto-enabled
+  and auto-allowed, so users don't get the "Background Items Added" alert for it and can't
+  switch it off in System Settings > Login Items. macOS still shows one notice that
+  managed items were installed.
+
+  One rule, scoped to the agent's launchd label and constrained to the signing team. A
+  TeamIdentifier rule would also allow every other background item the team ever ships.
+  make-pkg.sh fills in the team from the app's signature (ad-hoc builds keep __TEAM_ID__).
+-->
+<plist version="1.0">
+<dict>
+  <key>Rules</key>
+  <array>
+    <dict>
+      <key>RuleType</key>
+      <string>Label</string>
+      <key>RuleValue</key>
+      <string>com.devnull.ntlmac.agent</string>
+      <key>TeamIdentifier</key>
+      <string>__TEAM_ID__</string>
+      <key>Comment</key>
+      <string>NTLMac agent</string>
+    </dict>
+  </array>
+</dict>
+</plist>

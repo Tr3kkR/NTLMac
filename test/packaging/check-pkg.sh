@@ -101,6 +101,13 @@ assert m['name'] == '$PREFIX'" "$P/Library/$dir/NativeMessagingHosts/$PREFIX.jso
   PROFILE="$(dirname "$PKG")/profiles/$PREFIX.plist"
   check "Jamf prefs profile $PREFIX.plist beside the package" plutil -lint -s "$PROFILE"
   check "profile comment names the $PREFIX domain" grep -q "preference domain: $PREFIX)" "$PROFILE"
+  LOGIN_ITEMS="$(dirname "$PKG")/profiles/com.apple.servicemanagement.$PREFIX.plist"
+  check "managed login items profile allows only the agent's label" python3 -c "
+import plistlib, sys
+p = plistlib.load(open(sys.argv[1], 'rb'))
+assert [(r['RuleType'], r['RuleValue']) for r in p['Rules']] == [('Label', '$PREFIX.agent')], p
+assert p['Rules'][0]['TeamIdentifier'] == '__TEAM_ID__', p  # ad-hoc build: no team to fill in" "$LOGIN_ITEMS"
+  check "app explains Local Network access" sh -c "plutil -extract NSLocalNetworkUsageDescription raw '$APP/Contents/Info.plist' | grep -q ."
 }
 
 check_package com.devnull.ntlmac
