@@ -24,8 +24,11 @@ import { chromium } from "playwright";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
 export const EXTENSION = join(ROOT, "extension");
-export const NMH = join(ROOT, "agent/.build/debug/ntlmac-nmh");
-export const AGENT = join(ROOT, "agent/.build/debug/NTLMacAgent");
+// The shipped layout: both executables inside the (ad-hoc, debug) NTLMac.app, built by
+// the pretest scripts with agent/scripts/make-app.sh.
+const BUNDLE_BIN = join(ROOT, "agent/.build/debug/NTLMac.app/Contents/MacOS");
+export const NMH = join(BUNDLE_BIN, "ntlmac-nmh");
+export const AGENT = join(BUNDLE_BIN, "NTLMacAgent");
 const SERVER_DIR = join(ROOT, "test/ntlm-server");
 const PYTHON = join(SERVER_DIR, ".venv/bin/python");
 const CHROMIUM = process.env.CHROMIUM_BIN ?? chromium.executablePath();

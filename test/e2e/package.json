@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "npm run test:spike && npm run test:scenarios",
+    "pretest:spike": "../../agent/scripts/make-app.sh debug",
     "test:spike": "node --test spike.test.ts",
+    "pretest:scenarios": "../../agent/scripts/make-app.sh debug",
     "test:scenarios": "node --test --test-concurrency=1 scenarios.test.ts"
   },
   "devDependencies": {

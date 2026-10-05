@@ -71,7 +71,8 @@ cd test/ntlm-server && python3 -m venv .venv && .venv/bin/pip install pyspnego \
   && printf 'CORP:jbloggs:Passw0rd!\n' > users.txt && ./make-cert.sh \
   && .venv/bin/python -m unittest selftest
 
-# Browser end-to-end (needs the three steps above plus `swift build` in agent/).
+# Browser end-to-end (needs the three steps above). Each suite first builds the ad-hoc
+# debug NTLMac.app (make-app.sh) and runs the agent and native host from inside it.
 # `npm test` runs both suites; or `npm run test:spike` / `npm run test:scenarios`.
 cd test/e2e && npm install && npx playwright install chromium && npm test
 
