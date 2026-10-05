@@ -32,9 +32,12 @@ contains no NTLM implementation.
 | `packaging/` | `NTLMac.app` Info.plist and agent entitlements, native-messaging manifest, LaunchAgent plist, the installer package (`pkg/`: scripts, uninstaller, signing and notarisation procedure) and Jamf profile templates (`com.example.ntlmac` prefs, Chrome/Edge policy). |
 | `docs/` | Telemetry schema contract, spike findings. |
 
-Identifiers (native host name, preference domain, Keychain service) use the placeholder
-prefix `com.example.ntlmac`. Substitute your organisation's reverse-DNS prefix before
-packaging.
+Identifiers (Mach service, bundle and signing identifiers, native host name, preference
+domain, Keychain service and group) use the placeholder prefix `com.example.ntlmac`. Build
+with your organisation's prefix by setting `NTLMAC_PREFIX` for `make-app.sh` /
+`make-pkg.sh`. The binaries read the prefix back from their own signing identifiers
+(`NTLMacIdentity`); see [packaging/pkg/README.md](packaging/pkg/README.md) for what else
+must match.
 
 ## Running the tests
 

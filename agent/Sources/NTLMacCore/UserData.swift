@@ -5,9 +5,9 @@ import Foundation
 /// (`NTLMacAgent --remove-user-data`, run as each user), because only a binary with the
 /// agent's `keychain-access-groups` entitlement can delete the Keychain item.
 public enum UserData {
-    /// `~/Library/Application Support/com.example.ntlmac`
+    /// `~/Library/Application Support/<prefix>`
     public static func defaultDirectory(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
-        home.appendingPathComponent("Library/Application Support/com.example.ntlmac", isDirectory: true)
+        NTLMacIdentity.current.userDataDirectory(home: home)
     }
 
     /// Deletes the credential and every path that exists. Tries everything before

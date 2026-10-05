@@ -2,8 +2,12 @@
 # Builds NTLMac.app from the Swift package: Contents/MacOS/NTLMacAgent (main executable)
 # and Contents/MacOS/ntlmac-nmh (native host), with packaging/app/Info.plist.
 #
-# Usage: [SIGN_IDENTITY=<identity>] agent/scripts/make-app.sh [debug|release]
+# Usage: [SIGN_IDENTITY=<identity>] [NTLMAC_PREFIX=<reverse DNS>] agent/scripts/make-app.sh [debug|release]
 #   -> agent/.build/<config>/NTLMac.app   (release is universal: arm64 + x86_64)
+#
+# NTLMAC_PREFIX (default com.example.ntlmac, the repository's placeholder) replaces
+# com.example.ntlmac in the bundle ID, the signing identifiers and the Keychain group. The
+# binaries read it back from their own signing identifiers (NTLMacIdentity).
 #
 # Signs ad hoc by default, which is enough to run it locally (the e2e suites use debug
 # overrides instead of a team). With SIGN_IDENTITY (a Developer ID Application identity
@@ -18,6 +22,10 @@ cd "$(dirname "$0")/.."
 
 config="${1:-debug}"
 identity="${SIGN_IDENTITY:--}"
+prefix="${NTLMAC_PREFIX:-com.example.ntlmac}"
+# As NTLMacIdentity: 2+ labels of [a-z0-9_] (requirement strings, native host names).
+printf '%s' "$prefix" | grep -Eqx '[a-z0-9_]+(\.[a-z0-9_]+)+' \
+  || { echo "NTLMAC_PREFIX must be reverse DNS: lowercase letters, digits, _ and dots" >&2; exit 64; }
 version=$(sed -n 's/^let version = "\(.*\)"$/\1/p' Sources/NTLMacAgent/main.swift)
 [ -n "$version" ] || { echo "cannot read the version from main.swift" >&2; exit 1; }
 
@@ -32,17 +40,17 @@ app=".build/$config/NTLMac.app"
 
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS"
-sed "s/__VERSION__/$version/g" ../packaging/app/Info.plist > "$app/Contents/Info.plist"
+sed -e "s/__VERSION__/$version/g" -e "s/com\.example\.ntlmac/$prefix/g" ../packaging/app/Info.plist > "$app/Contents/Info.plist"
 plutil -lint -s "$app/Contents/Info.plist"
 cp "$bin/NTLMacAgent" "$bin/ntlmac-nmh" "$app/Contents/MacOS/"
 
 # Inside out: the nested helper first, then the bundle (which signs its main executable).
 if [ "$identity" = "-" ]; then
-  codesign --force --sign - --identifier com.example.ntlmac.nmh "$app/Contents/MacOS/ntlmac-nmh"
+  codesign --force --sign - --identifier "$prefix.nmh" "$app/Contents/MacOS/ntlmac-nmh"
   codesign --force --sign - "$app"
 else
   codesign --force --sign "$identity" --options runtime --timestamp \
-    --identifier com.example.ntlmac.nmh "$app/Contents/MacOS/ntlmac-nmh"
+    --identifier "$prefix.nmh" "$app/Contents/MacOS/ntlmac-nmh"
   # The team comes from the signature just made, so it can't disagree with the identity.
   team=$(codesign -dv "$app/Contents/MacOS/ntlmac-nmh" 2>&1 | sed -n 's/^TeamIdentifier=//p')
   case "$team" in
@@ -51,7 +59,7 @@ else
   esac
   entitlements=$(mktemp -t ntlmac-entitlements)
   trap 'rm -f "$entitlements"' EXIT
-  sed "s/__TEAM_ID__/$team/g" ../packaging/app/NTLMacAgent.entitlements > "$entitlements"
+  sed -e "s/__TEAM_ID__/$team/g" -e "s/com\.example\.ntlmac/$prefix/g" ../packaging/app/NTLMacAgent.entitlements > "$entitlements"
   plutil -lint -s "$entitlements"
   codesign --force --sign "$identity" --options runtime --timestamp --entitlements "$entitlements" "$app"
 fi

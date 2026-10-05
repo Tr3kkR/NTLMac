@@ -52,11 +52,11 @@ private func server(requiringClient requirement: String, seen: Seen = Seen()) ->
         #expect(throws: CodeSigningError.invalidTeamID) { try CodeSigningPolicy(teamID: teamID) }
     }
 
-    @Test(arguments: [#"com.example" or true"#, "", "com example"])
-    func rejectsMalformedIdentifiers(identifier: String) {
-        #expect(throws: CodeSigningError.invalidIdentifier) {
-            try CodeSigningPolicy(teamID: "ABCDE12345", agentIdentifier: identifier)
-        }
+    @Test func requirementsFollowTheIdentity() throws {
+        let other = try CodeSigningPolicy(teamID: "ABCDE12345", identity: NTLMacIdentity(prefix: "org.test.ntlmac")!)
+        #expect(other.agentRequirement.hasSuffix(#"identifier "org.test.ntlmac.agent""#))
+        #expect(other.shimRequirement.hasSuffix(#"identifier "org.test.ntlmac.nmh""#))
+        #expect(other.keychainAccessGroup == "ABCDE12345.org.test.ntlmac")
     }
 
     @Test func thisUnsignedTestProcessSatisfiesItsOwnRequirementButNotTheTeamPolicy() throws {

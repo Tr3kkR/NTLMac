@@ -84,7 +84,7 @@ public struct TelemetryRecorder: Sendable {
                 .init("os.version", resource.osVersion),
                 .init("ntlmac.schema", Self.schemaVersion),
             ]),
-            scopeMetrics: [OTLP.ScopeMetrics(scope: .init(name: "com.example.ntlmac", version: resource.serviceVersion), metrics: metrics)]
+            scopeMetrics: [OTLP.ScopeMetrics(scope: .init(name: NTLMacIdentity.current.prefix, version: resource.serviceVersion), metrics: metrics)]
         )])
         auth.removeAll()
         prompts.removeAll()

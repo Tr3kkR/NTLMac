@@ -16,7 +16,7 @@ public struct TelemetryQueue: Sendable {
     public static let defaultMaxAge: TimeInterval = 7 * 86_400
     public static let defaultMaxBytes = 5 * 1024 * 1024
 
-    /// `~/Library/Application Support/com.example.ntlmac/telemetry`
+    /// `~/Library/Application Support/<prefix>/telemetry`
     public static func defaultDirectory(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
         UserData.defaultDirectory(home: home).appendingPathComponent("telemetry", isDirectory: true)
     }

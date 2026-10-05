@@ -1,6 +1,6 @@
 import Foundation
 
-/// Managed configuration delivered by Jamf in the `com.example.ntlmac` preference domain.
+/// Managed configuration delivered by Jamf in the `<prefix>` preference domain (`NTLMacIdentity`).
 public struct NTLMacConfig: Codable, Sendable, Equatable {
     /// Master switch. `false` stops NTLMac supplying credentials immediately.
     public var enabled: Bool

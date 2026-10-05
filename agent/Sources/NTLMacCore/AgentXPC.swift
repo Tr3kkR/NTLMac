@@ -3,48 +3,36 @@ import Security
 
 public enum AgentXPC {
     /// The agent's launchd Mach service (`MachServices` in the LaunchAgent plist).
-    public static let machServiceName = "com.example.ntlmac.agent"
+    public static let machServiceName = NTLMacIdentity.current.agent
 }
 
 // MARK: Code-signing policy
 
 public enum CodeSigningError: Error, Equatable {
     case invalidTeamID
-    case invalidIdentifier
     case invalidRequirement(OSStatus)
     case cannotInspectSelf(OSStatus)
 }
 
 /// Who may talk to whom over XPC: both binaries must be signed by Apple-issued certificates
-/// for one team, with the expected bundle identifiers. The agent checks the shim; the shim
-/// checks the agent.
+/// for one team, with the expected identifiers (from the identity's prefix). The agent
+/// checks the shim; the shim checks the agent.
 public struct CodeSigningPolicy: Sendable, Equatable {
-    public static let defaultAgentIdentifier = "com.example.ntlmac.agent"
-    public static let defaultShimIdentifier = "com.example.ntlmac.nmh"
-
     public let teamID: String
-    public let agentIdentifier: String
-    public let shimIdentifier: String
+    public let identity: NTLMacIdentity
 
-    public init(
-        teamID: String,
-        agentIdentifier: String = defaultAgentIdentifier,
-        shimIdentifier: String = defaultShimIdentifier
-    ) throws {
+    public init(teamID: String, identity: NTLMacIdentity = .current) throws {
         // Values are pasted into requirement-language strings, so allow nothing that could
-        // close a quote or add a clause.
+        // close a quote or add a clause (NTLMacIdentity validates the prefix).
         guard teamID.count == 10, teamID.allSatisfy({ ("A" ... "Z").contains($0) || ("0" ... "9").contains($0) }) else {
             throw CodeSigningError.invalidTeamID
         }
-        for id in [agentIdentifier, shimIdentifier] {
-            guard !id.isEmpty, id.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "." || $0 == "-") }) else {
-                throw CodeSigningError.invalidIdentifier
-            }
-        }
         self.teamID = teamID
-        self.agentIdentifier = agentIdentifier
-        self.shimIdentifier = shimIdentifier
+        self.identity = identity
     }
+
+    public var agentIdentifier: String { identity.agent }
+    public var shimIdentifier: String { identity.shim }
 
     /// Both binaries ship in one signed package, so each requires its peer to carry its
     /// own team ID. Nil when this process isn't signed with a team ID (ad-hoc, unsigned).
@@ -53,9 +41,8 @@ public struct CodeSigningPolicy: Sendable, Equatable {
     }
 
     /// The agent's Keychain access group (`keychain-access-groups` in
-    /// packaging/app/NTLMacAgent.entitlements). Team-prefixed, so macOS honours it with no
-    /// provisioning profile, and no other team's code can claim it.
-    public var keychainAccessGroup: String { "\(teamID).com.example.ntlmac" }
+    /// packaging/app/NTLMacAgent.entitlements).
+    public var keychainAccessGroup: String { identity.keychainAccessGroup(teamID: teamID) }
 
     /// What the shim requires of the agent.
     public var agentRequirement: String { requirement(identifier: agentIdentifier) }
@@ -83,6 +70,16 @@ public enum CodeSigning {
 
     /// The team ID this process is signed with, or nil if it has none.
     public static func currentTeamID() throws -> String? {
+        try currentSigningInformation()[kSecCodeInfoTeamIdentifier as String] as? String
+    }
+
+    /// This process's signing identifier (`<prefix>.agent`, `<prefix>.nmh`, or whatever an
+    /// unsigned build was given), or nil.
+    public static func currentIdentifier() throws -> String? {
+        try currentSigningInformation()[kSecCodeInfoIdentifier as String] as? String
+    }
+
+    private static func currentSigningInformation() throws -> [String: Any] {
         var code: SecCode?
         var staticCode: SecStaticCode?
         var info: CFDictionary?
@@ -92,7 +89,7 @@ public enum CodeSigning {
         guard status == errSecSuccess, let staticCode else { throw CodeSigningError.cannotInspectSelf(status) }
         status = SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &info)
         guard status == errSecSuccess, let info = info as? [String: Any] else { throw CodeSigningError.cannotInspectSelf(status) }
-        return info[kSecCodeInfoTeamIdentifier as String] as? String
+        return info
     }
 
     private static func compile(_ requirement: String) throws -> SecRequirement {

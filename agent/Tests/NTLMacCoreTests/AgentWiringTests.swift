@@ -25,7 +25,7 @@ private func tempURL(_ name: String) -> URL {
 @Suite struct AgentIdentityTests {
     @Test func machServiceNameIsTheAgentIdentifier() {
         #expect(AgentXPC.machServiceName == "com.example.ntlmac.agent")
-        #expect(AgentXPC.machServiceName == CodeSigningPolicy.defaultAgentIdentifier)
+        #expect(AgentXPC.machServiceName == NTLMacIdentity.current.agent)
     }
 
     @Test func launchAgentTemplateRegistersTheMachService() throws {
@@ -49,13 +49,13 @@ private func tempURL(_ name: String) -> URL {
         let app = "/Library/Application Support/NTLMac/NTLMac.app"
 
         let info = try plist("app/Info.plist")
-        #expect(info["CFBundleIdentifier"] as? String == CodeSigningPolicy.defaultAgentIdentifier)
+        #expect(info["CFBundleIdentifier"] as? String == NTLMacIdentity.placeholder.agent)
         #expect(info["CFBundleExecutable"] as? String == "NTLMacAgent")
         #expect(info["LSUIElement"] as? Bool == true, "no Dock icon or menu bar")
 
         let agent = try plist("launchd/com.example.ntlmac.agent.plist")
         #expect(agent["ProgramArguments"] as? [String] == ["\(app)/Contents/MacOS/NTLMacAgent"])
-        #expect(agent["AssociatedBundleIdentifiers"] as? String == CodeSigningPolicy.defaultAgentIdentifier)
+        #expect(agent["AssociatedBundleIdentifiers"] as? String == NTLMacIdentity.placeholder.agent)
 
         let manifest = try #require(try JSONSerialization.jsonObject(
             with: Data(contentsOf: packaging.appendingPathComponent("native-messaging/com.example.ntlmac.json"))) as? [String: Any])

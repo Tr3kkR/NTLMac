@@ -82,7 +82,7 @@ public struct SystemKeychain: KeychainAPI {
 /// `accessGroup`) only by binaries signed with the agent's team ID and that
 /// `keychain-access-groups` entitlement. Unsigned builds get `errSecMissingEntitlement`.
 public struct KeychainCredentialStore: CredentialStore {
-    public static let defaultService = "com.example.ntlmac.credential"
+    public static let defaultService = NTLMacIdentity.current.credentialService
 
     public let service: String
     public let accessGroup: String?

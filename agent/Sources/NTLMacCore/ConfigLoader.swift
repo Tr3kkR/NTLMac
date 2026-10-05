@@ -1,7 +1,7 @@
 import Foundation
 
 public enum ConfigLoader {
-    public static let preferenceDomain = "com.example.ntlmac"
+    public static let preferenceDomain = NTLMacIdentity.current.preferenceDomain
 
     /// Reads the Jamf-managed preference domain (`/Library/Managed Preferences`).
     public static func loadManaged(domain: String = preferenceDomain) throws -> NTLMacConfig {

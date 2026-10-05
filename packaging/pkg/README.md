@@ -84,6 +84,19 @@ Developer ID build** (step 5).
    --predicate 'subsystem == "com.example.ntlmac"'`) for -34018. Then run `uninstall.sh`
    and confirm the item is gone.
 
-Substitute your organisation's reverse-DNS prefix for `com.example.ntlmac` everywhere
-(identifiers, Keychain service and group, Mach service, preference domain) before
-building for production.
+## Prefix
+
+`NTLMAC_PREFIX=<reverse DNS>` (default `com.example.ntlmac`, the repository's placeholder)
+replaces `com.example.ntlmac` in the app's bundle ID, both signing identifiers, the
+Keychain group, the LaunchAgent (name, label, Mach service), the manifests (name, file
+name), the scripts and the package identifier. The prefix needs at least two labels of
+lowercase letters, digits and `_`, because it is also the native-messaging host name.
+The binaries need no rebuild: each reads the prefix back from its own signing identifier
+(`<prefix>.agent`, `<prefix>.nmh`), as it does the team ID. An unsigned or bare build gets
+the placeholder.
+
+The build doesn't cover two things that must match:
+- the extension's `NATIVE_HOST` (`extension/src/logic.ts`): the native host name, i.e.
+  the prefix;
+- the Jamf preference profile's domain (`packaging/profiles/com.example.ntlmac.plist`):
+  the prefix.

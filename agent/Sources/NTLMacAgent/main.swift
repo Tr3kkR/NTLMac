@@ -9,7 +9,7 @@ import os
 // and exports telemetry. The decisions are in NTLMacCore.AgentService.
 
 let version = "0.1.0"
-let logger = Logger(subsystem: "com.example.ntlmac", category: "agent")
+let logger = Logger(subsystem: NTLMacIdentity.current.prefix, category: "agent")
 
 func log(_ message: String) {
     // Never pass a password here. stderr goes to launchd's StandardErrorPath when set.

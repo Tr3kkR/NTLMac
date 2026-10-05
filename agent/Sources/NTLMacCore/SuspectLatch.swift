@@ -43,7 +43,7 @@ public final class InMemorySuspectLatch: SuspectLatch, @unchecked Sendable {
 /// The latch as an empty marker file: present means suspect. The file holds nothing, but
 /// it lives in the user's private support folder (0700) like the telemetry queue.
 public struct FileSuspectLatch: SuspectLatch {
-    /// `~/Library/Application Support/com.example.ntlmac/credential-suspect`
+    /// `~/Library/Application Support/<prefix>/credential-suspect`
     public static func defaultURL(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
         UserData.defaultDirectory(home: home).appendingPathComponent("credential-suspect")
     }
